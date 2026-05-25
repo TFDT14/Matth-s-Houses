@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Lock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { Lock, Eye, EyeOff } from 'lucide-react';
+import BrandLogo from '../components/BrandLogo';
 
 export default function Login() {
   const [code, setCode]       = useState('');
@@ -15,79 +16,95 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     setError('');
-    await new Promise(r => setTimeout(r, 400));
+    await new Promise(r => setTimeout(r, 350));
     if (login(code)) {
       navigate('/');
     } else {
-      setError("Code d'accès incorrect.");
+      setError('Code incorrect. Veuillez réessayer.');
     }
     setLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex items-center justify-center p-4">
-      {/* grid bg */}
-      <div className="absolute inset-0 opacity-[0.04]"
-        style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '36px 36px' }} />
+    <div className="min-h-screen bg-mh-paper-2 flex flex-col">
 
-      <div className="relative w-full max-w-sm">
-        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
-          <div className="h-1.5 bg-red-600" />
+      {/* Top bar */}
+      <div className="px-8 py-5 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <BrandLogo size={26} />
+          <span className="text-sm font-medium text-mh-text">Matth's Houses</span>
+        </div>
+        <span className="font-mono text-[10px] tracking-widest text-mh-text-3 uppercase">
+          v2 · Atelier interne
+        </span>
+      </div>
 
-          <div className="p-8">
-            {/* Logo */}
-            <div className="flex flex-col items-center mb-8">
-              <div className="w-20 h-20 bg-black rounded-2xl flex items-center justify-center mb-4 shadow-xl">
-                <span className="text-white font-black text-3xl tracking-tight">MH</span>
+      {/* Card centrale */}
+      <div className="flex-1 flex items-center justify-center px-4">
+        <div className="w-full max-w-[420px] bg-mh-paper border border-mh-line rounded-2xl
+                        shadow-[0_1px_2px_rgba(0,0,0,.02),0_12px_40px_-12px_rgba(0,0,0,.08)]
+                        px-9 py-10">
+
+          {/* Logo + titre */}
+          <div className="flex flex-col items-center mb-8">
+            <BrandLogo size={64} />
+            <h1 className="mt-4 text-[22px] font-semibold tracking-[-0.01em] text-mh-text">
+              Matth's Houses
+            </h1>
+            <p className="text-[13px] text-mh-text-3 mt-1">Accès à l'espace de gestion</p>
+          </div>
+
+          {/* Formulaire */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="label">Code d'accès</label>
+              <div className="relative">
+                <Lock size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-mh-text-4 pointer-events-none" />
+                <input
+                  type={show ? 'text' : 'password'}
+                  value={code}
+                  onChange={e => setCode(e.target.value)}
+                  placeholder="••••••••"
+                  autoFocus
+                  className="input-field pl-10 pr-4"
+                />
               </div>
-              <h1 className="text-2xl font-black text-gray-900 tracking-tight">MATTH'S HOUSES</h1>
-              <p className="text-xs text-gray-400 mt-1">SARL • Martinique</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="label">Code d'accès</label>
-                <div className="relative">
-                  <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type={show ? 'text' : 'password'}
-                    value={code}
-                    onChange={e => setCode(e.target.value)}
-                    placeholder="••••••••"
-                    className="input-field pl-10 pr-10"
-                    autoFocus
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShow(!show)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    {show ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </button>
-                </div>
-              </div>
+            {error && (
+              <p className="text-[12.5px] text-mh-text-2 bg-mh-paper-3 border border-mh-line px-3.5 py-2.5 rounded-mh">
+                {error}
+              </p>
+            )}
 
-              {error && (
-                <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>
-              )}
+            <button
+              type="submit"
+              disabled={!code || loading}
+              className="btn-primary w-full justify-center py-3.5 text-sm"
+            >
+              {loading
+                ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                : 'Accéder à l\'application'
+              }
+            </button>
+          </form>
 
-              <button
-                type="submit"
-                disabled={!code || loading}
-                className="btn-primary w-full flex items-center justify-center gap-2"
-              >
-                {loading
-                  ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  : "Accéder à l'application"
-                }
-              </button>
-            </form>
-          </div>
-
-          <div className="bg-gray-50 px-8 py-3 text-center text-xs text-gray-400 border-t border-gray-100">
-            Accès réservé — Matth's Houses
+          {/* Footer card */}
+          <div className="flex items-center justify-center gap-1.5 mt-6 text-[11px] text-mh-text-4">
+            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+            Connexion sécurisée · Notion API
           </div>
         </div>
+      </div>
+
+      {/* Footer page */}
+      <div className="px-8 py-6 flex items-center justify-between">
+        <span className="font-mono text-[10px] tracking-widest text-mh-text-3 uppercase">
+          SARL · Martinique · France
+        </span>
+        <span className="font-mono text-[10px] tracking-widest text-mh-text-3 uppercase">
+          © 2026 Matth's Houses
+        </span>
       </div>
     </div>
   );

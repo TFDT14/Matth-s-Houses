@@ -10,8 +10,8 @@ import Layout         from './components/Layout';
 
 function Spinner() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full animate-spin" />
+    <div className="min-h-screen flex items-center justify-center bg-mh-paper-2">
+      <span className="w-7 h-7 border-2 border-mh-line-2 border-t-mh-noir rounded-full animate-spin" />
     </div>
   );
 }

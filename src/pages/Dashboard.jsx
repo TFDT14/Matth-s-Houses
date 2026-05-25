@@ -1,27 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Image, Users, Plus, TrendingUp, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { FileText, Image, Users, Plus } from 'lucide-react';
+import KPICard    from '../components/KPICard';
+import ModuleCard from '../components/ModuleCard';
+import Button     from '../components/Button';
 import { quotesApi } from '../utils/api';
 import { fmt } from '../utils/products';
 
-function StatCard({ label, value, icon: Icon, color }) {
-  const colors = {
-    red:    'bg-red-50 text-red-600',
-    green:  'bg-green-50 text-green-600',
-    yellow: 'bg-yellow-50 text-yellow-600',
-    blue:   'bg-blue-50 text-blue-600',
-  };
-  return (
-    <div className="card flex items-center gap-4">
-      <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${colors[color]}`}>
-        <Icon size={22} />
-      </div>
-      <div>
-        <p className="text-2xl font-black text-gray-900">{value}</p>
-        <p className="text-sm text-gray-500">{label}</p>
-      </div>
-    </div>
-  );
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Bonjour';
+  if (h < 18) return 'Bon après-midi';
+  return 'Bonsoir';
+}
+
+function todayLabel() {
+  return new Intl.DateTimeFormat('fr-FR', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+  }).format(new Date());
 }
 
 export default function Dashboard() {
@@ -44,46 +40,75 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }, []);
 
-  const val = (v, isNum = false) => loading ? '…' : (isNum ? fmt(v) : v);
+  const v = (val, isMoney = false) =>
+    loading ? '…' : isMoney ? fmt(val) : String(val);
+
+  const modules = [
+    {
+      icon: FileText,
+      title: 'Générateur de devis',
+      description: 'Créez des devis PDF professionnels en quelques clics. Enregistrement automatique dans Notion.',
+      cta: 'Créer un devis',
+      path: '/devis',
+    },
+    {
+      icon: Image,
+      title: 'Médiathèque',
+      description: 'Gérez vos plaquettes commerciales, photos et présentations. Stockage Cloudinary.',
+      cta: 'Voir les fichiers',
+      path: '/media',
+    },
+    {
+      icon: Users,
+      title: 'Suivi clients',
+      description: 'Liste complète de vos devis. Filtres, changement de statut en un clic, sync Notion.',
+      cta: 'Voir les clients',
+      path: '/clients',
+    },
+  ];
 
   return (
-    <div className="space-y-8 max-w-5xl">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="max-w-5xl">
+
+      {/* Hero */}
+      <div className="flex items-end justify-between mb-9">
         <div>
-          <h2 className="text-2xl font-black text-gray-900">Bonjour 👋</h2>
-          <p className="text-sm text-gray-500 mt-0.5">Espace de gestion — Matth's Houses</p>
+          <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-mh-text-3 mb-2">
+            {todayLabel()}
+          </p>
+          <h1 className="text-[34px] font-semibold tracking-[-0.02em] leading-tight text-mh-text">
+            {getGreeting()} Matthieu.
+          </h1>
+          <p className="text-sm text-mh-text-3 mt-1.5">Voici un aperçu de l'atelier ce mois-ci.</p>
         </div>
-        <button onClick={() => navigate('/devis')} className="btn-primary flex items-center gap-2 text-sm">
-          <Plus size={16} /> Nouveau devis
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button variant="secondary" onClick={() => navigate('/media')}>
+            Médiathèque
+          </Button>
+          <Button variant="primary" onClick={() => navigate('/devis')}>
+            <Plus size={14} />
+            Nouveau devis
+          </Button>
+        </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total devis"   value={val(stats.total)}           icon={FileText}     color="blue"   />
-        <StatCard label="En attente"    value={val(stats.attente)}          icon={Clock}        color="yellow" />
-        <StatCard label="Acceptés"      value={val(stats.accepte)}          icon={CheckCircle}  color="green"  />
-        <StatCard label="Volume TTC"    value={val(stats.volume, true)}     icon={TrendingUp}   color="red"    />
+      {/* KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-9">
+        <KPICard label="Devis émis"  value={v(stats.total)}           sublabel={`${stats.total > 0 ? '+' + stats.total : '0'} au total`} />
+        <KPICard label="En attente"  value={v(stats.attente)}         sublabel="À traiter" />
+        <KPICard label="Acceptés"    value={v(stats.accepte)}         sublabel="Confirmés" />
+        <KPICard label="Volume TTC"  value={v(stats.volume, true)}    sublabel="Total devis" />
       </div>
 
       {/* Modules */}
       <div>
-        <h3 className="text-base font-bold text-gray-900 mb-4">Modules</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {[
-            { icon: FileText, title: 'Générateur de devis', desc: 'Créez des devis PDF pro en quelques clics, enregistrement auto dans Notion.', path: '/devis', cta: 'Créer un devis' },
-            { icon: Image,    title: 'Médiathèque',          desc: 'Gérez plaquettes, photos et présentations. Stockage Cloudinary.', path: '/media', cta: 'Voir les fichiers' },
-            { icon: Users,    title: 'Suivi clients',        desc: 'Liste de tous vos devis. Filtres, changement de statut en 1 clic.', path: '/clients', cta: 'Voir les clients' },
-          ].map(({ icon: Icon, title, desc, path, cta }) => (
-            <div key={path} className="card hover:shadow-md transition-shadow group cursor-pointer" onClick={() => navigate(path)}>
-              <div className="w-11 h-11 bg-red-50 rounded-xl flex items-center justify-center mb-4">
-                <Icon size={20} className="text-red-600" />
-              </div>
-              <h4 className="font-bold text-gray-900 mb-1.5">{title}</h4>
-              <p className="text-sm text-gray-500 mb-4 leading-relaxed">{desc}</p>
-              <span className="text-sm text-red-600 font-semibold group-hover:underline">{cta} →</span>
-            </div>
+        <div className="flex items-center justify-between mb-3.5">
+          <h2 className="text-[15px] font-semibold text-mh-text">Modules</h2>
+          <span className="text-[12px] text-mh-text-3">3 actifs</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+          {modules.map(m => (
+            <ModuleCard key={m.path} {...m} onClick={() => navigate(m.path)} />
           ))}
         </div>
       </div>

@@ -1,245 +1,300 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { MODELS, OPTIONS, TVA_RATE, VALIDITY_DAYS, fmt, fmtDate } from './products';
+import { MODELS, OPTIONS, TVA_RATE, fmtDate } from './products';
 
-const COMPANY = {
-  name:    "MATTH'S HOUSES",
-  legal:   'SARL',
-  address: 'Martinique, France',
-  email:   'contact@matthshouses.mq',
-};
+/* ─── helpers ──────────────────────────────────────────────────── */
+function eur(n) {
+  return new Intl.NumberFormat('fr-FR', {
+    style: 'currency', currency: 'EUR', minimumFractionDigits: 2,
+  }).format(n);
+}
 
+function pad2(n) { return String(n).padStart(2, '0'); }
+
+/* ─── couleurs ─────────────────────────────────────────────────── */
+const NOIR   = [10,  10,  10];
+const BLANC  = [255, 255, 255];
+const GRIS_1 = [82,  80,  80];   // mh-text-2
+const GRIS_2 = [138, 133, 124];  // mh-text-3
+const GRIS_3 = [184, 179, 168];  // mh-text-4
+const LINE   = [232, 230, 224];  // mh-line
+const PAPER2 = [250, 250, 249];  // mh-paper-2
+
+/* ─── générateur principal ─────────────────────────────────────── */
 export function generateQuotePDF(quoteData) {
   const {
     clientName, phone, modelId, selectedOptions = [],
-    totalHT, totalTVA, totalTTC, acompte,
+    totalHT, totalTVA, totalTTC,
     quoteNumber, quoteDate,
   } = quoteData;
 
-  const doc  = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  const W    = doc.internal.pageSize.getWidth();
-  const H    = doc.internal.pageSize.getHeight();
-  const M    = 14;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const W   = doc.internal.pageSize.getWidth();   // 210
+  const PL  = 18;   // padding left
+  const PR  = 18;   // padding right
+  const CW  = W - PL - PR;
 
-  // ── WATERMARK ──────────────────────────────────────────────
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(110);
-  doc.setTextColor(245, 245, 245);
-  doc.text('MH', W / 2, H / 2, { align: 'center', baseline: 'middle' });
+  /* police de base */
+  doc.setFont('helvetica');
 
-  // ── RED DOTTED BORDER ──────────────────────────────────────
-  doc.setDrawColor(220, 38, 38);
-  doc.setLineWidth(0.7);
-  doc.setLineDash([3, 2.5], 0);
-  doc.rect(M - 4, M - 4, W - (M - 4) * 2, H - (M - 4) * 2);
-  doc.setLineDash([], 0);
+  /* ── HEADER ────────────────────────────────────────────────── */
+  let y = 16;
 
-  let y = M + 2;
-
-  // ── LOGO BLOC ──────────────────────────────────────────────
-  doc.setFillColor(0, 0, 0);
-  doc.roundedRect(M, y, 26, 20, 2, 2, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
-  doc.text('MH', M + 13, y + 12, { align: 'center' });
-
-  doc.setTextColor(0, 0, 0);
+  // Monogramme MH — carré noir 28×28 en haut à droite
+  const mhX = W - PR - 28;
+  doc.setFillColor(...NOIR);
+  doc.roundedRect(mhX, y, 28, 28, 2, 2, 'F');
+  doc.setTextColor(...BLANC);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13);
-  doc.text(COMPANY.name, M + 30, y + 7);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.5);
-  doc.setTextColor(100, 100, 100);
-  doc.text(`${COMPANY.legal} • ${COMPANY.address}`, M + 30, y + 13);
-  doc.text(COMPANY.email, M + 30, y + 18);
+  doc.text('MH', mhX + 14, y + 17, { align: 'center' });
 
-  // ── GRAND "DEVIS" ─────────────────────────────────────────
+  // "DEVIS" grande
+  doc.setTextColor(...NOIR);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(38);
-  doc.setTextColor(220, 38, 38);
-  doc.text('DEVIS', W - M, y + 14, { align: 'right' });
+  doc.setFontSize(52);
+  doc.text('DEVIS', PL, y + 19);
+
+  // sous-titre monospace
+  doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
-  doc.setTextColor(80, 80, 80);
-  doc.text(quoteNumber, W - M, y + 20, { align: 'right' });
+  doc.setTextColor(...GRIS_2);
+  doc.text(`N° ${quoteNumber}  ·  MARTINIQUE`, PL, y + 26);
 
-  y += 26;
+  y += 38;
 
-  // ── LIGNE ROUGE ───────────────────────────────────────────
-  doc.setDrawColor(220, 38, 38);
-  doc.setLineWidth(0.4);
-  doc.line(M, y, W - M, y);
-  y += 5;
+  /* ── DATES ─────────────────────────────────────────────────── */
+  const dateObj   = quoteDate instanceof Date ? quoteDate : new Date(quoteDate);
+  const dateStr   = fmtDate(dateObj);
+  const validDate = new Date(dateObj);
+  validDate.setDate(validDate.getDate() + 15);
+  const validStr  = fmtDate(validDate);
 
-  // ── DATE / VALIDITÉ ───────────────────────────────────────
-  const dateObj    = quoteDate instanceof Date ? quoteDate : new Date(quoteDate);
-  const validUntil = new Date(dateObj);
-  validUntil.setDate(validUntil.getDate() + VALIDITY_DAYS);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9.5);
+  doc.setTextColor(...NOIR);
+  doc.text('Date du devis',     PL,       y);
+  doc.text('Validité du devis', PL + 55,  y);
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.5);
-  doc.setTextColor(80, 80, 80);
-  doc.text(`Date : ${fmtDate(dateObj)}`, M, y + 4);
-  doc.text(`Valide jusqu'au : ${fmtDate(validUntil)}`, M + 60, y + 4);
+  doc.setTextColor(...GRIS_1);
+  doc.text(`: ${dateStr}`, PL + 31,     y);
+  doc.text(`: ${validStr}`, PL + 86,    y);
+
   y += 10;
 
-  // ── BLOC CLIENT ───────────────────────────────────────────
-  doc.setFillColor(250, 250, 250);
-  doc.setDrawColor(220, 38, 38);
-  doc.setLineWidth(0.3);
-  doc.roundedRect(M, y, W - M * 2, 22, 2, 2, 'FD');
+  /* ── DIVIDER ────────────────────────────────────────────────── */
+  doc.setDrawColor(...NOIR);
+  doc.setLineWidth(0.4);
+  doc.line(PL, y, W - PR, y);
+  y += 8;
+
+  /* ── ÉMETTEUR / DESTINATAIRE ────────────────────────────────── */
+  const colW = CW / 2 - 4;
+
+  // Gauche — émetteur
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.setTextColor(...GRIS_2);
+  doc.text('DE', PL, y);
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-  doc.setTextColor(220, 38, 38);
-  doc.text('CLIENT', M + 4, y + 6);
-  doc.setTextColor(0, 0, 0);
-  doc.setFontSize(11);
-  doc.text(clientName, M + 4, y + 13);
+  doc.setFontSize(10);
+  doc.setTextColor(...NOIR);
+  doc.text('MATTHIAS HAYOT', PL, y + 5.5);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(...GRIS_1);
+  doc.text('06 96 55 58 27', PL, y + 11);
+  doc.text('matthshouses@gmail.com', PL, y + 16);
+  doc.text('Martinique, France', PL, y + 21);
+
+  // Droite — destinataire
+  const rX = W - PR;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.setTextColor(...GRIS_2);
+  doc.text('A L\'ATTENTION DE', rX, y, { align: 'right' });
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(...NOIR);
+  doc.text(clientName.toUpperCase(), rX, y + 5.5, { align: 'right' });
+
   if (phone) {
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
-    doc.setTextColor(80, 80, 80);
-    doc.text(`Tél : ${phone}`, M + 4, y + 19);
-  }
-
-  const model = MODELS.find(m => m.id === modelId);
-  if (model) {
-    doc.setFillColor(220, 38, 38);
-    doc.roundedRect(W - M - 36, y + 6, 36, 10, 2, 2, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
-    doc.text(`Modèle ${model.label}`, W - M - 18, y + 12.5, { align: 'center' });
+    doc.setTextColor(...GRIS_1);
+    doc.text(phone, rX, y + 11, { align: 'right' });
   }
 
-  y += 28;
+  y += 30;
 
-  // ── TABLEAU ARTICLES ──────────────────────────────────────
-  const rows = [];
+  /* ── TABLEAU ARTICLES ───────────────────────────────────────── */
+  const model = MODELS.find(m => m.id === modelId);
+  const rows  = [];
+
   if (model) {
-    rows.push([`Maison container ${model.label}`, fmt(model.price), '1', fmt(model.price)]);
-    rows.push(['Transport & livraison (Martinique)', fmt(model.transport), '1', fmt(model.transport)]);
+    rows.push([`Maison container ${model.label}`, eur(model.price), pad2(1), eur(model.price)]);
+    rows.push(['Transport & livraison (Martinique)', eur(model.transport), pad2(1), eur(model.transport)]);
   }
+
   selectedOptions.forEach(({ optionId, quantity }) => {
     if (quantity < 1) return;
     const opt = OPTIONS.find(o => o.id === optionId);
     if (!opt) return;
-    rows.push([opt.label, fmt(opt.price), String(quantity), fmt(opt.price * quantity)]);
+    rows.push([opt.label, eur(opt.price), pad2(quantity), eur(opt.price * quantity)]);
   });
 
   autoTable(doc, {
     startY: y,
-    head: [['Description', 'Prix unitaire HT', 'Qté', 'Total HT']],
+    head: [['DESCRIPTION', 'PRIX', 'QUANTITÉ', 'TOTAL']],
     body: rows,
-    theme: 'grid',
-    styles:     { font: 'helvetica', fontSize: 8.5, cellPadding: 3.5, textColor: [30, 30, 30], lineColor: [215, 215, 215] },
-    headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8.5 },
-    columnStyles: {
-      0: { cellWidth: 'auto' },
-      1: { cellWidth: 38, halign: 'right' },
-      2: { cellWidth: 12, halign: 'center' },
-      3: { cellWidth: 38, halign: 'right' },
+    theme: 'plain',
+    styles: {
+      font: 'helvetica',
+      fontSize: 9,
+      cellPadding: { top: 4, bottom: 4, left: 3, right: 3 },
+      textColor: NOIR,
+      lineColor: LINE,
+      lineWidth: 0.25,
     },
-    alternateRowStyles: { fillColor: [252, 252, 252] },
-    margin: { left: M, right: M },
+    headStyles: {
+      fillColor: false,
+      textColor: GRIS_2,
+      fontStyle: 'bold',
+      fontSize: 7.5,
+      cellPadding: { top: 3, bottom: 5, left: 3, right: 3 },
+    },
+    bodyStyles: {
+      fillColor: false,
+    },
+    alternateRowStyles: {
+      fillColor: PAPER2,
+    },
+    columnStyles: {
+      0: { cellWidth: 'auto',   halign: 'left' },
+      1: { cellWidth: 36,       halign: 'right' },
+      2: { cellWidth: 22,       halign: 'center' },
+      3: { cellWidth: 36,       halign: 'right',  fontStyle: 'bold' },
+    },
+    margin: { left: PL, right: PR },
+    tableLineColor: NOIR,
+    tableLineWidth: 0.4,
   });
 
   y = doc.lastAutoTable.finalY + 6;
 
-  // ── TOTAUX ────────────────────────────────────────────────
-  const tX = W - M - 78;
-  const tW = 78;
+  /* ── TOTAUX ────────────────────────────────────────────────── */
+  const totW  = 72;
+  const totX  = W - PR - totW;
 
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.5);
-  doc.setTextColor(60, 60, 60);
-  doc.text('Total HT :', tX + 6, y + 5);
-  doc.text(fmt(totalHT), tX + tW - 2, y + 5, { align: 'right' });
-  doc.text(`TVA (${(TVA_RATE * 100).toFixed(1)}%) :`, tX + 6, y + 11);
-  doc.text(fmt(totalTVA), tX + tW - 2, y + 11, { align: 'right' });
-
-  y += 14;
-
-  // Barre noire TTC
-  doc.setFillColor(0, 0, 0);
-  doc.roundedRect(tX, y, tW, 13, 2, 2, 'F');
-  doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.text('TOTAL TTC :', tX + 6, y + 8.5);
-  doc.text(fmt(totalTTC), tX + tW - 3, y + 8.5, { align: 'right' });
+  doc.setFontSize(9.5);
 
-  y += 16;
+  // Sous-total HT
+  doc.setTextColor(...NOIR);
+  doc.text('Sous-total', totX, y);
+  doc.text(eur(totalHT), W - PR, y, { align: 'right' });
 
-  // Barre rouge acompte
-  doc.setFillColor(220, 38, 38);
-  doc.roundedRect(tX, y, tW, 10, 2, 2, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.5);
-  doc.text('Acompte 40% :', tX + 6, y + 6.5);
-  doc.text(fmt(acompte), tX + tW - 3, y + 6.5, { align: 'right' });
-
-  y += 16;
-
-  // ── CONDITIONS ────────────────────────────────────────────
-  if (y < H - 55) {
-    doc.setFillColor(255, 251, 235);
-    doc.setDrawColor(252, 211, 77);
-    doc.setLineWidth(0.3);
-    doc.roundedRect(M, y, W / 2 - M - 4, 18, 2, 2, 'FD');
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(7.5);
-    doc.setTextColor(146, 64, 14);
-    doc.text('CONDITIONS DE VENTE', M + 4, y + 6);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(120, 53, 15);
-    doc.text('• Acompte 40% à la commande', M + 4, y + 11);
-    doc.text('• Validité : 30 jours', M + 4, y + 15.5);
-    doc.text('• Prix HT + TVA 8,5%', M + 64, y + 11);
-    doc.text('• Livraison en Martinique incluse', M + 64, y + 15.5);
-    y += 22;
-  }
-
-  // ── ZONE SIGNATURES ───────────────────────────────────────
-  const sigY = Math.max(y, H - 42);
-  doc.setDrawColor(200, 200, 200);
-  doc.setLineWidth(0.3);
-
-  doc.roundedRect(M, sigY, 72, 27, 2, 2, 'D');
+  y += 5.5;
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.5);
-  doc.setTextColor(100, 100, 100);
-  doc.text('Signature client', M + 4, sigY + 6);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7);
-  doc.text('Bon pour accord, lu et approuvé', M + 4, sigY + 11);
-  doc.text('Date : _____ / _____ / ________', M + 4, sigY + 23);
+  doc.text('TVA (8,5 %)', totX, y);
+  doc.text(eur(totalTVA), W - PR, y, { align: 'right' });
 
-  doc.roundedRect(W - M - 72, sigY, 72, 27, 2, 2, 'D');
+  y += 8;
+
+  /* Bande noire TOTAL TTC */
+  doc.setFillColor(...NOIR);
+  doc.roundedRect(totX - 4, y, totW + 4, 13, 1.5, 1.5, 'F');
+  doc.setTextColor(...BLANC);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text('TOTAL', totX, y + 8.5);
+  doc.setFontSize(13);
+  doc.text(eur(totalTTC), W - PR, y + 9, { align: 'right' });
+
+  y += 19;
+
+  /* ── BAS DE PAGE — termes + signature ──────────────────────── */
+  const botY     = y;
+  const halfW    = CW / 2 - 5;
+
+  // Gauche : termes
+  doc.setTextColor(...NOIR);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9.5);
+  doc.text('Termes et conditions', PL, botY);
+
+  const termes = [
+    '· Un acompte de 25 % est requis à la commande',
+    '· Validité du devis : 15 jours',
+    '· Livraison en Martinique incluse',
+  ];
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(...GRIS_1);
+  termes.forEach((t, i) => doc.text(t, PL, botY + 7 + i * 5.5));
+
+  // Note provisoire
+  const noteY = botY + 27;
+  doc.setFillColor(...PAPER2);
+  doc.setDrawColor(...LINE);
+  doc.setLineWidth(0.25);
+  doc.roundedRect(PL, noteY, halfW, 18, 1.5, 1.5, 'FD');
+  // bord gauche épais noir
+  doc.setDrawColor(...NOIR);
+  doc.setLineWidth(1.2);
+  doc.line(PL, noteY + 1, PL, noteY + 17);
+  doc.setLineWidth(0.25);
+
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
-  doc.setTextColor(100, 100, 100);
-  doc.text("Signature Matth's Houses", W - M - 68, sigY + 6);
+  doc.setTextColor(...NOIR);
+  doc.text('Note —', PL + 4, noteY + 5.5);
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7);
-  doc.text('Responsable commercial', W - M - 68, sigY + 11);
-
-  // ── PIED DE PAGE ──────────────────────────────────────────
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7);
-  doc.setTextColor(160, 160, 160);
-  doc.text(
-    `MATTH'S HOUSES SARL • Martinique • ${quoteNumber} • Émis le ${fmtDate(dateObj)}`,
-    W / 2, H - 7, { align: 'center' }
+  doc.setTextColor(...GRIS_1);
+  const noteText = doc.splitTextToSize(
+    "L'Équipe MH vous informe que ce devis est provisoire et que le définitif sera délivré uniquement après la visite du terrain par le transporteur.",
+    halfW - 8
   );
+  doc.setFontSize(7.5);
+  doc.text(noteText, PL + 4, noteY + 10);
+
+  // Droite : signature
+  const sigX = PL + halfW + 10;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(...NOIR);
+  const sigLabel = doc.splitTextToSize(
+    "Signature suivie de la mention « bon pour accord »",
+    halfW
+  );
+  doc.text(sigLabel, sigX + halfW / 2, botY + 5, { align: 'center' });
+
+  // Ligne signature
+  const lineY = botY + 24;
+  doc.setDrawColor(...NOIR);
+  doc.setLineWidth(0.4);
+  doc.line(sigX, lineY, sigX + halfW, lineY);
+
+  /* ── FOOTER ────────────────────────────────────────────────── */
+  const footerY = Math.max(noteY + 26, lineY + 10) + 8;
+  doc.setDrawColor(...NOIR);
+  doc.setLineWidth(0.4);
+  doc.line(PL, footerY, W - PR, footerY);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.5);
+  doc.setTextColor(...NOIR);
+  doc.text('MERCI DE VOTRE CONFIANCE', W / 2, footerY + 5.5, { align: 'center' });
 
   return doc;
 }
 
 export function downloadPDF(quoteData) {
-  const doc = generateQuotePDF(quoteData);
+  const doc  = generateQuotePDF(quoteData);
   const name = `${quoteData.quoteNumber}-${quoteData.clientName.replace(/\s+/g, '_')}.pdf`;
   doc.save(name);
 }
