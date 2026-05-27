@@ -6,46 +6,74 @@ export const MODELS = [
 ];
 
 export const OPTIONS = [
-  { id: 'porte_double_alu',    label: 'Porte double battant alu', price: 463.86 },
-  { id: 'porte_simple',        label: 'Porte simple',             price: 277.60 },
-  { id: 'porte_coulissante',   label: 'Porte coulissante',        price: 463.86 },
-  { id: 'porte_grille',        label: 'Porte grille',             price: 347.59 },
-  { id: 'porte_bois_nb',       label: 'Porte bois noir/blanc',    price: 70.00  },
-  { id: 'porte_bois_simple',   label: 'Porte bois simple',        price: 70.00  },
-  { id: 'porte_bois_marron',   label: 'Porte bois marron',        price: 70.00  },
-  { id: 'fenetre_coulissante', label: 'Fenêtre coulissante',      price: 70.00  },
-  { id: 'fenetre_grille',      label: 'Fenêtre grille',           price: 138.80 },
-  { id: 'meubles_hauts',       label: 'Meubles hauts',            price: 185.07 },
-  { id: 'mur_vitre',           label: 'Mur vitré',                price: 742.64 },
+  // Portes
+  { id: 'porte_double_alu',    label: 'Porte double battant alu',                 price: 463.86, cat: 'portes' },
+  { id: 'porte_simple',        label: 'Porte simple',                             price: 277.60, cat: 'portes' },
+  { id: 'porte_coulissante',   label: 'Porte coulissante',                        price: 463.86, cat: 'portes' },
+  { id: 'porte_grille',        label: 'Porte grille',                             price: 347.59, cat: 'portes' },
+  { id: 'porte_bois_nb',       label: 'Porte bois noir/blanc',                   price: 70.00,  cat: 'portes' },
+  { id: 'porte_bois_simple',   label: 'Porte bois simple',                       price: 70.00,  cat: 'portes' },
+  { id: 'porte_bois_marron',   label: 'Porte bois marron',                       price: 70.00,  cat: 'portes' },
+  // Fenêtres
+  { id: 'fenetre_coulissante', label: 'Fenêtre coulissante',                      price: 70.00,  cat: 'fenetres' },
+  { id: 'fenetre_rt',          label: 'Fenêtre coulissante à rupture thermique',  price: 130.00, cat: 'fenetres' },
+  { id: 'fenetre_grille',      label: 'Fenêtre grille',                           price: 138.80, cat: 'fenetres' },
+  // Intérieur
+  { id: 'meubles_hauts',       label: 'Meubles hauts',                            price: 185.07, cat: 'interieur' },
+  { id: 'mur_vitre',           label: 'Mur vitré',                               price: 742.64, cat: 'interieur' },
+  // Extérieur — prix variable selon le modèle
+  {
+    id: 'panneaux_ext', label: 'Panneaux extérieurs', price: null, cat: 'exterieur',
+    pricesByModel: { '20m2': 325, '37m2': 580, '56m2': 812, '74m2': 1043 },
+  },
 ];
 
-export const TVA_RATE     = 0.085;
-export const ACOMPTE_RATE = 0.40;
+export const OPTION_CATS = [
+  { id: 'portes',    label: 'Portes' },
+  { id: 'fenetres',  label: 'Fenêtres' },
+  { id: 'interieur', label: 'Intérieur' },
+  { id: 'exterieur', label: 'Extérieur' },
+];
+
+/** Prix par défaut d'une option (sans override) */
+export function getDefaultOptionPrice(optionId, modelId) {
+  const opt = OPTIONS.find(o => o.id === optionId);
+  if (!opt) return 0;
+  if (opt.pricesByModel) return opt.pricesByModel[modelId] ?? 0;
+  return opt.price ?? 0;
+}
+
+export const TVA_RATE      = 0.085;
+export const ACOMPTE_RATE  = 0.40;
 export const VALIDITY_DAYS = 30;
 
-export function calculateTotals(modelId, selectedOptions = []) {
-  const model = MODELS.find(m => m.id === modelId);
-  if (!model) return { ht: 0, tva: 0, ttc: 0, acompte: 0 };
+/**
+ * Calcule les totaux.
+ * @param {string}   modelId
+ * @param {Array}    selectedOptions  [{optionId, quantity}]
+ * @param {number}   discount         remise en euros HT
+ * @param {object}   priceFns         { getModelPrice, getModelTransport, getOptionPrice } (optionnel)
+ */
+export function calculateTotals(modelId, selectedOptions = [], discount = 0, priceFns = null) {
+  const getMP  = (id) => priceFns?.getModelPrice(id)     ?? MODELS.find(m => m.id === id)?.price     ?? 0;
+  const getTR  = (id) => priceFns?.getModelTransport(id) ?? MODELS.find(m => m.id === id)?.transport ?? 0;
+  const getOP  = (optId, mdlId) => priceFns?.getOptionPrice(optId, mdlId) ?? getDefaultOptionPrice(optId, mdlId);
 
-  let ht = model.price + model.transport;
-
+  let ht = getMP(modelId) + getTR(modelId);
   selectedOptions.forEach(({ optionId, quantity }) => {
-    if (quantity > 0) {
-      const opt = OPTIONS.find(o => o.id === optionId);
-      if (opt) ht += opt.price * quantity;
-    }
+    if (quantity > 0) ht += getOP(optionId, modelId) * quantity;
   });
 
-  const tva    = round(ht * TVA_RATE);
-  const ttc    = round(ht + tva);
+  const discAmt = Math.min(Math.max(0, discount || 0), ht);
+  ht = round(ht - discAmt);
+
+  const tva     = round(ht * TVA_RATE);
+  const ttc     = round(ht + tva);
   const acompte = round(ttc * ACOMPTE_RATE);
-
-  return { ht: round(ht), tva, ttc, acompte };
+  return { ht, tva, ttc, acompte, discount: discAmt };
 }
 
-function round(n) {
-  return Math.round(n * 100) / 100;
-}
+function round(n) { return Math.round(n * 100) / 100; }
 
 export function fmt(n) {
   return new Intl.NumberFormat('fr-FR', {

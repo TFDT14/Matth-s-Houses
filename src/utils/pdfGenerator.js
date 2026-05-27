@@ -24,7 +24,8 @@ const PAPER2 = [250, 250, 249];  // mh-paper-2
 export function generateQuotePDF(quoteData) {
   const {
     clientName, phone, modelId, selectedOptions = [],
-    totalHT, totalTVA, totalTTC,
+    modelPrice, modelTransport,
+    totalHT, totalTVA, totalTTC, acompte, discount = 0,
     quoteNumber, quoteDate,
   } = quoteData;
 
@@ -135,16 +136,20 @@ export function generateQuotePDF(quoteData) {
   const model = MODELS.find(m => m.id === modelId);
   const rows  = [];
 
+  const mPrice = modelPrice  ?? model?.price     ?? 0;
+  const mTrans = modelTransport ?? model?.transport ?? 0;
+
   if (model) {
-    rows.push([`Maison container ${model.label}`, eur(model.price), pad2(1), eur(model.price)]);
-    rows.push(['Transport & livraison (Martinique)', eur(model.transport), pad2(1), eur(model.transport)]);
+    rows.push([`Maison container ${model.label}`, eur(mPrice), pad2(1), eur(mPrice)]);
+    rows.push(['Transport & livraison (Martinique)', eur(mTrans), pad2(1), eur(mTrans)]);
   }
 
-  selectedOptions.forEach(({ optionId, quantity }) => {
+  selectedOptions.forEach(({ optionId, quantity, unitPrice }) => {
     if (quantity < 1) return;
-    const opt = OPTIONS.find(o => o.id === optionId);
+    const opt   = OPTIONS.find(o => o.id === optionId);
     if (!opt) return;
-    rows.push([opt.label, eur(opt.price), pad2(quantity), eur(opt.price * quantity)]);
+    const price = unitPrice ?? opt.price ?? 0;
+    rows.push([opt.label, eur(price), pad2(quantity), eur(price * quantity)]);
   });
 
   autoTable(doc, {
@@ -190,16 +195,24 @@ export function generateQuotePDF(quoteData) {
   const totW  = 72;
   const totX  = W - PR - totW;
 
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('helvetica', 'normal');
   doc.setFontSize(9.5);
 
   // Sous-total HT
-  doc.setTextColor(...NOIR);
-  doc.text('Sous-total', totX, y);
+  doc.setTextColor(...GRIS_1);
+  doc.text('Sous-total HT', totX, y);
   doc.text(eur(totalHT), W - PR, y, { align: 'right' });
 
+  // Remise (si > 0)
+  if (discount > 0) {
+    y += 5.5;
+    doc.setTextColor(...GRIS_2);
+    doc.text('Remise', totX, y);
+    doc.text(`− ${eur(discount)}`, W - PR, y, { align: 'right' });
+  }
+
   y += 5.5;
-  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...GRIS_1);
   doc.text('TVA (8,5 %)', totX, y);
   doc.text(eur(totalTVA), W - PR, y, { align: 'right' });
 
@@ -211,11 +224,28 @@ export function generateQuotePDF(quoteData) {
   doc.setTextColor(...BLANC);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
-  doc.text('TOTAL', totX, y + 8.5);
+  doc.text('TOTAL TTC', totX, y + 8.5);
   doc.setFontSize(13);
   doc.text(eur(totalTTC), W - PR, y + 9, { align: 'right' });
 
-  y += 19;
+  y += 16;
+
+  /* Acompte 40 % */
+  if (acompte && acompte > 0) {
+    doc.setFillColor(...PAPER2);
+    doc.setDrawColor(...LINE);
+    doc.setLineWidth(0.25);
+    doc.roundedRect(totX - 4, y, totW + 4, 10, 1, 1, 'FD');
+    doc.setTextColor(...GRIS_1);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.text('Acompte 40 %', totX, y + 6.5);
+    doc.setFont('helvetica', 'bold');
+    doc.text(eur(acompte), W - PR, y + 6.5, { align: 'right' });
+    y += 13;
+  } else {
+    y += 3;
+  }
 
   /* ── BAS DE PAGE — termes + signature ──────────────────────── */
   const botY     = y;

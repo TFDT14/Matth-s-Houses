@@ -13,9 +13,9 @@ export const quotesApi = {
 };
 
 export const mediaApi = {
-  getAll:  ()     => api.get('/media'),
-  upload:  (form) => api.post('/media/upload', form, { headers: { 'Content-Type': 'multipart/form-data' } }),
-  delete:  (id)   => api.delete(`/media/${encodeURIComponent(id)}`),
+  getAll:  (category) => api.get('/media', { params: category ? { category } : {} }),
+  upload:  (form)     => api.post('/media/upload', form, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  delete:  (id)       => api.delete(`/media/${encodeURIComponent(id)}`),
 };
 
 export default api;

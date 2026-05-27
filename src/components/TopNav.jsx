@@ -2,13 +2,13 @@ import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import BrandLogo from './BrandLogo';
 import { useAuth } from '../contexts/AuthContext';
-import { LogOut } from 'lucide-react';
 
 const NAV = [
-  { to: '/',        label: 'Tableau de bord', end: true },
+  { to: '/',        label: 'Dashboard',  end: true },
   { to: '/devis',   label: 'Devis' },
   { to: '/media',   label: 'Médiathèque' },
   { to: '/clients', label: 'Clients' },
+  { to: '/prix',    label: 'Prix' },
 ];
 
 export default function TopNav() {
@@ -17,19 +17,18 @@ export default function TopNav() {
 
   return (
     <nav className="bg-mh-paper border-b border-mh-line px-9 h-[60px] flex items-center justify-between shrink-0 sticky top-0 z-10">
-      {/* Gauche — brand */}
+      {/* Gauche */}
       <div className="flex items-center gap-2.5">
         <BrandLogo size={30} />
         <span className="text-sm font-semibold text-mh-text tracking-[-0.01em]">Matth's Houses</span>
       </div>
 
-      {/* Centre — nav pills */}
+      {/* Centre */}
       <div className="flex items-center gap-1">
         {NAV.map(({ to, label, end }) => (
-          <NavLink
-            key={to} to={to} end={end}
+          <NavLink key={to} to={to} end={end}
             className={({ isActive }) =>
-              `px-3.5 py-1.5 rounded-lg text-[13px] transition-colors duration-150 ${
+              `px-3 py-1.5 rounded-lg text-[13px] transition-colors duration-150 ${
                 isActive
                   ? 'bg-mh-paper-3 text-mh-text font-medium'
                   : 'text-mh-text-3 hover:text-mh-text hover:bg-mh-paper-3'
@@ -41,7 +40,7 @@ export default function TopNav() {
         ))}
       </div>
 
-      {/* Droite — statut + avatar */}
+      {/* Droite */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-1.5 text-[12px] text-mh-text-3">
           <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />

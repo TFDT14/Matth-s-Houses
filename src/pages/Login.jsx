@@ -18,7 +18,7 @@ export default function Login() {
     setError('');
     await new Promise(r => setTimeout(r, 350));
     if (login(code)) {
-      navigate('/');
+      navigate('/select');
     } else {
       setError('Code incorrect. Veuillez réessayer.');
     }

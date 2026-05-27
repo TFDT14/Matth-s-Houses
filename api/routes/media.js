@@ -12,12 +12,23 @@ cloudinary.config({
 const storage = multer.memoryStorage();
 const upload = multer({ storage, limits: { fileSize: 20 * 1024 * 1024 } });
 
+/* catégorie → sous-dossier Cloudinary */
+const VALID_CATS = ['20m2', '37m2', '56m2', '74m2', 'options'];
+
 router.get('/', async (req, res) => {
   try {
+    const cat  = req.query.category;
+    const folder = cat && VALID_CATS.includes(cat)
+      ? `matths-houses/${cat}`
+      : 'matths-houses';
+    const expr = cat && VALID_CATS.includes(cat)
+      ? `folder:${folder}`
+      : 'folder:matths-houses';
+
     const result = await cloudinary.search
-      .expression('folder:matths-houses')
+      .expression(expr)
       .sort_by('created_at', 'desc')
-      .max_results(50)
+      .max_results(100)
       .execute();
     res.json({ files: result.resources });
   } catch (err) {
@@ -29,11 +40,16 @@ router.post('/upload', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'Aucun fichier reçu' });
 
-    const b64 = Buffer.from(req.file.buffer).toString('base64');
+    const cat    = req.body?.category;
+    const folder = cat && VALID_CATS.includes(cat)
+      ? `matths-houses/${cat}`
+      : 'matths-houses';
+
+    const b64    = Buffer.from(req.file.buffer).toString('base64');
     const dataURI = `data:${req.file.mimetype};base64,${b64}`;
 
     const result = await cloudinary.uploader.upload(dataURI, {
-      folder: 'matths-houses',
+      folder,
       resource_type: 'auto',
       public_id: `${Date.now()}-${req.file.originalname.replace(/\s+/g, '_')}`,
     });
