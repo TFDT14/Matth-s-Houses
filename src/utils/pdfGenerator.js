@@ -102,7 +102,7 @@ export function generateQuotePDF(quoteData) {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
   doc.setTextColor(...NOIR);
-  doc.text('MATTHIAS HAYOT', PL, y + 5.5);
+  doc.text("MATTH'S HOUSES", PL, y + 5.5);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
