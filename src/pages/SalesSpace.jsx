@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Home, Image, FileText, File, Download, FolderOpen } from 'lucide-react';
+import { ArrowLeft, Home, Image, FileText, File, Download, FolderOpen, Mail, Instagram } from 'lucide-react';
 import BrandLogo from '../components/BrandLogo';
 import { MODELS, TVA_RATE } from '../utils/products';
 import { mediaApi } from '../utils/api';
@@ -14,11 +14,28 @@ function fmtTTC(n) {
   }).format(n);
 }
 
-const MODEL_DESC = {
-  '20m2': 'Idéal pour un studio ou usage individuel. Compact et parfaitement optimisé.',
-  '37m2': 'Parfait pour un couple ou un bureau professionnel. Confort optimal.',
-  '56m2': 'Espace familial avec configuration modulable selon vos besoins.',
-  '74m2': 'Notre modèle premium. Grande capacité, finitions haut de gamme.',
+/* ── infos modèles ── */
+const MODEL_INFO = {
+  '20m2': {
+    type: 'Studio modulaire',
+    uses: 'Chambre étudiante · Pied-à-terre · Dépendance',
+    desc: "L'unité minimale. Compact, optimisée, prête à vivre.",
+  },
+  '37m2': {
+    type: 'Maison 2 pièces',
+    uses: 'Couple · Télétravail · Résidence principale',
+    desc: 'Tout le confort essentiel dans un format maîtrisé.',
+  },
+  '56m2': {
+    type: 'Maison familiale',
+    uses: 'Famille · Colocation · Logement modulable',
+    desc: 'Espace de vie complet, entièrement personnalisable.',
+  },
+  '74m2': {
+    type: 'Villa container',
+    uses: 'Résidence premium · Grand confort · Investissement',
+    desc: 'Notre modèle signature. Finitions haut de gamme.',
+  },
 };
 
 /* ── catégories médiathèque ── */
@@ -37,7 +54,7 @@ function fileIcon(fmt) {
   return File;
 }
 
-/* ── Card média (lecture seule) ── */
+/* ── Card média lecture seule ── */
 function MediaCard({ file }) {
   const Icon    = fileIcon(file.format);
   const isImage = file.resource_type === 'image';
@@ -83,7 +100,7 @@ export default function SalesSpace() {
       .then(r => setFiles(r.data.files || []))
       .catch(() => setMediaErr('Impossible de charger les supports.'))
       .finally(() => setLoadMedia(false));
-  }, [activeCat]);
+  }, [activeCat]); // eslint-disable-line
 
   return (
     <div className="min-h-screen bg-mh-paper-2">
@@ -121,10 +138,14 @@ export default function SalesSpace() {
           <h2 className="text-sm font-semibold text-mh-text mb-5">Nos modèles</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {MODELS.map(m => {
+              const info   = MODEL_INFO[m.id] ?? {};
               const prixTTC = (m.price + m.transport) * TVA;
               return (
                 <div key={m.id}
-                  className="bg-white border border-mh-line rounded-xl p-6 hover:shadow-[0_4px_20px_-8px_rgba(0,0,0,.1)] transition-shadow">
+                  className="bg-white border border-mh-line rounded-xl p-6
+                             hover:shadow-[0_4px_20px_-8px_rgba(0,0,0,.1)] transition-shadow">
+
+                  {/* Header carte */}
                   <div className="flex items-start justify-between mb-4">
                     <div className="w-10 h-10 bg-mh-paper-3 rounded-lg flex items-center justify-center">
                       <Home size={18} className="text-mh-text-2" />
@@ -134,10 +155,24 @@ export default function SalesSpace() {
                     </span>
                   </div>
 
-                  <h3 className="text-lg font-semibold text-mh-text mb-1.5">Maison {m.label}</h3>
-                  <p className="text-[12.5px] text-mh-text-3 leading-relaxed mb-5">{MODEL_DESC[m.id]}</p>
+                  {/* Titre + type */}
+                  <h3 className="text-lg font-semibold text-mh-text">Maison {m.label}</h3>
+                  {info.type && (
+                    <p className="text-[13px] font-medium text-mh-text-2 mt-0.5">{info.type}</p>
+                  )}
 
-                  <div className="pt-4 border-t border-mh-line">
+                  {/* Usages */}
+                  {info.uses && (
+                    <p className="text-[12px] text-mh-text-4 mt-2 mb-1">{info.uses}</p>
+                  )}
+
+                  {/* Description */}
+                  {info.desc && (
+                    <p className="text-[12.5px] text-mh-text-3 leading-relaxed mb-5">{info.desc}</p>
+                  )}
+
+                  {/* Prix */}
+                  <div className="pt-4 border-t border-mh-line mt-auto">
                     <p className="text-[11px] text-mh-text-4 font-medium uppercase tracking-wider mb-1">
                       À partir de
                     </p>
@@ -199,12 +234,21 @@ export default function SalesSpace() {
         {/* ── CONTACT ── */}
         <div className="bg-mh-noir text-white rounded-2xl p-8 text-center">
           <h2 className="text-xl font-semibold mb-2">Intéressé par un modèle ?</h2>
-          <p className="text-sm text-white/60 mb-6">Contactez-nous pour obtenir un devis personnalisé.</p>
-          <a href="mailto:matthshouses@gmail.com"
-            className="inline-flex items-center gap-2 bg-white text-mh-noir text-sm font-medium
-                       px-5 py-2.5 rounded-lg hover:bg-mh-paper-3 transition-colors">
-            matthshouses@gmail.com
-          </a>
+          <p className="text-sm text-white/60 mb-7">Contactez-nous pour obtenir un devis personnalisé.</p>
+          <div className="flex flex-col items-center gap-3">
+            <a href="mailto:matthshouses@gmail.com"
+              className="inline-flex items-center gap-2 bg-white text-mh-noir text-sm font-medium
+                         px-5 py-2.5 rounded-lg hover:bg-mh-paper-3 transition-colors w-64 justify-center">
+              <Mail size={14} />
+              matthshouses@gmail.com
+            </a>
+            <a href="https://www.instagram.com/matthshouses" target="_blank" rel="noreferrer"
+              className="inline-flex items-center gap-2 bg-white/10 text-white text-sm font-medium
+                         px-5 py-2.5 rounded-lg hover:bg-white/20 transition-colors w-64 justify-center">
+              <Instagram size={14} />
+              @matthshouses
+            </a>
+          </div>
         </div>
 
       </div>

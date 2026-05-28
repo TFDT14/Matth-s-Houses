@@ -7,23 +7,27 @@ export const MODELS = [
 
 export const OPTIONS = [
   // Portes
-  { id: 'porte_double_alu',    label: 'Porte double battant alu',                 price: 463.86, cat: 'portes' },
-  { id: 'porte_simple',        label: 'Porte simple',                             price: 277.60, cat: 'portes' },
-  { id: 'porte_coulissante',   label: 'Porte coulissante',                        price: 463.86, cat: 'portes' },
-  { id: 'porte_grille',        label: 'Porte grille',                             price: 347.59, cat: 'portes' },
-  { id: 'porte_bois_nb',       label: 'Porte bois noir/blanc',                   price: 70.00,  cat: 'portes' },
-  { id: 'porte_bois_simple',   label: 'Porte bois simple',                       price: 70.00,  cat: 'portes' },
-  { id: 'porte_bois_marron',   label: 'Porte bois marron',                       price: 70.00,  cat: 'portes' },
+  { id: 'porte_double_alu',    label: 'Porte double battant aluminium',           price: 463.86, cat: 'portes' },
+  { id: 'porte_simple',        label: 'Porte simple battant aluminium',           price: 277.60, cat: 'portes' },
+  { id: 'porte_coulissante',   label: 'Porte coulissante aluminium',              price: 463.86, cat: 'portes' },
+  { id: 'porte_grille',        label: 'Porte simple à grille aluminium',          price: 347.59, cat: 'portes' },
+  { id: 'porte_bois_nb',       label: 'Porte en bois — encadrement noir/blanc',  price: 70.00,  cat: 'portes' },
+  { id: 'porte_bois_simple',   label: 'Porte en bois — finition blanche',        price: 70.00,  cat: 'portes' },
+  { id: 'porte_bois_marron',   label: 'Porte en bois — finition marron',         price: 70.00,  cat: 'portes' },
   // Fenêtres
-  { id: 'fenetre_coulissante', label: 'Fenêtre coulissante',                      price: 70.00,  cat: 'fenetres' },
+  { id: 'fenetre_coulissante', label: 'Fenêtre coulissante alliage aluminium',    price: 70.00,  cat: 'fenetres' },
   { id: 'fenetre_rt',          label: 'Fenêtre coulissante à rupture thermique',  price: 130.00, cat: 'fenetres' },
-  { id: 'fenetre_grille',      label: 'Fenêtre grille',                           price: 138.80, cat: 'fenetres' },
+  { id: 'fenetre_grille',      label: 'Fenêtre à battant aluminium',             price: 138.80, cat: 'fenetres' },
   // Intérieur
-  { id: 'meubles_hauts',       label: 'Meubles hauts',                            price: 185.07, cat: 'interieur' },
-  { id: 'mur_vitre',           label: 'Mur vitré',                               price: 742.64, cat: 'interieur' },
+  { id: 'meubles_hauts',          label: 'Placards muraux de cuisine',           price: 185.07, cat: 'interieur' },
+  { id: 'vasque_miroir',          label: 'Meuble vasque avec miroir',            price: 0,      cat: 'interieur' },
+  { id: 'vasque_miroir_eclairant',label: 'Meuble vasque avec miroir éclairant',  price: 0,      cat: 'interieur' },
+  { id: 'vasque_miroir_led',      label: 'Meuble vasque avec miroir LED',        price: 0,      cat: 'interieur' },
+  { id: 'plafond_interieur',      label: 'Plafond intérieur',                    price: 0,      cat: 'interieur' },
+  { id: 'mur_vitre',              label: 'Mur rideau en verre',                  price: 742.64, cat: 'interieur' },
   // Extérieur — prix variable selon le modèle
   {
-    id: 'panneaux_ext', label: 'Panneaux extérieurs', price: null, cat: 'exterieur',
+    id: 'panneaux_ext', label: 'Panneaux métalliques', price: null, cat: 'exterieur',
     pricesByModel: { '20m2': 325, '37m2': 580, '56m2': 812, '74m2': 1043 },
   },
 ];
