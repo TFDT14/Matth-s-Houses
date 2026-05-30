@@ -4,7 +4,7 @@ export default function KPICard({ label, value, sublabel }) {
   return (
     <div className="bg-mh-paper border border-mh-line rounded-xl p-5">
       <p className="text-xs text-mh-text-3 font-medium mb-1">{label}</p>
-      <p className="text-[30px] font-semibold tracking-tight leading-none text-mh-text">
+      <p className="text-[22px] sm:text-[28px] font-semibold tracking-tight leading-tight text-mh-text break-all">
         {value}
       </p>
       {sublabel && (

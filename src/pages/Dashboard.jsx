@@ -77,7 +77,7 @@ export default function Dashboard() {
             {todayLabel()}
           </p>
           <h1 className="text-[34px] font-semibold tracking-[-0.02em] leading-tight text-mh-text">
-            {getGreeting()} Matthieu.
+            {getGreeting()}.
           </h1>
           <p className="text-sm text-mh-text-3 mt-1.5">Voici un aperçu de l'atelier ce mois-ci.</p>
         </div>
