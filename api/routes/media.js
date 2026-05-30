@@ -18,19 +18,25 @@ const VALID_CATS = ['20m2', '37m2', '56m2', '74m2', 'options'];
 router.get('/', async (req, res) => {
   try {
     const cat  = req.query.category;
-    const folder = cat && VALID_CATS.includes(cat)
-      ? `matths-houses/${cat}`
-      : 'matths-houses';
+    // "Tous" → recherche par préfixe de public_id pour inclure tous les sous-dossiers
     const expr = cat && VALID_CATS.includes(cat)
-      ? `folder:${folder}`
-      : 'folder:matths-houses';
+      ? `folder:matths-houses/${cat}`
+      : 'public_id:matths-houses/*';
 
     const result = await cloudinary.search
       .expression(expr)
-      .sort_by('created_at', 'desc')
-      .max_results(100)
+      .sort_by('created_at', 'asc')   // anciens en premier → images avant PDFs
+      .max_results(200)
       .execute();
-    res.json({ files: result.resources });
+
+    // Trier : images en tête, PDFs / docs à la fin
+    const sorted = [...result.resources].sort((a, b) => {
+      const aImg = a.resource_type === 'image' ? 0 : 1;
+      const bImg = b.resource_type === 'image' ? 0 : 1;
+      return aImg - bImg;
+    });
+
+    res.json({ files: sorted });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -62,8 +68,9 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 
 router.delete('/:publicId', async (req, res) => {
   try {
-    const publicId = decodeURIComponent(req.params.publicId);
-    await cloudinary.uploader.destroy(publicId, { resource_type: 'raw' });
+    const publicId    = decodeURIComponent(req.params.publicId);
+    const resType     = req.query.resource_type || 'image';
+    await cloudinary.uploader.destroy(publicId, { resource_type: resType });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
