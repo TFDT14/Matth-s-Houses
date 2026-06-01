@@ -1,24 +1,29 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { MODELS, OPTIONS, TVA_RATE, fmtDate } from './products';
+import { MODELS, OPTIONS, TVA_RATE, ACOMPTE_RATE, VALIDITY_DAYS, fmtDate } from './products';
 
 /* ─── helpers ──────────────────────────────────────────────────── */
 function eur(n) {
-  return new Intl.NumberFormat('fr-FR', {
+  // fr-FR utilise U+202F (espace fine insécable) comme séparateur de milliers
+  // jsPDF/Helvetica ne le rend pas → remplace par espace normale
+  const raw = new Intl.NumberFormat('fr-FR', {
     style: 'currency', currency: 'EUR', minimumFractionDigits: 2,
   }).format(n);
+  // Remplace tout espace non-breakable (U+00A0, U+202F) par espace ASCII
+  return raw.replace(/[  ]/g, ' ');
 }
 
 function pad2(n) { return String(n).padStart(2, '0'); }
 
+const pct = (r) => `${Math.round(r * 100)} %`;
+
 /* ─── couleurs ─────────────────────────────────────────────────── */
 const NOIR   = [10,  10,  10];
 const BLANC  = [255, 255, 255];
-const GRIS_1 = [82,  80,  80];   // mh-text-2
-const GRIS_2 = [138, 133, 124];  // mh-text-3
-const GRIS_3 = [184, 179, 168];  // mh-text-4
-const LINE   = [232, 230, 224];  // mh-line
-const PAPER2 = [250, 250, 249];  // mh-paper-2
+const GRIS_1 = [82,  80,  80];
+const GRIS_2 = [138, 133, 124];
+const LINE   = [232, 230, 224];
+const PAPER2 = [250, 250, 249];
 
 /* ─── générateur principal ─────────────────────────────────────── */
 export function generateQuotePDF(quoteData) {
@@ -31,17 +36,16 @@ export function generateQuotePDF(quoteData) {
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const W   = doc.internal.pageSize.getWidth();   // 210
-  const PL  = 18;   // padding left
-  const PR  = 18;   // padding right
+  const PL  = 18;
+  const PR  = 18;
   const CW  = W - PL - PR;
 
-  /* police de base */
   doc.setFont('helvetica');
 
   /* ── HEADER ────────────────────────────────────────────────── */
   let y = 16;
 
-  // Monogramme MH — carré noir 28×28 en haut à droite
+  // Carré MH
   const mhX = W - PR - 28;
   doc.setFillColor(...NOIR);
   doc.roundedRect(mhX, y, 28, 28, 2, 2, 'F');
@@ -50,13 +54,12 @@ export function generateQuotePDF(quoteData) {
   doc.setFontSize(13);
   doc.text('MH', mhX + 14, y + 17, { align: 'center' });
 
-  // "DEVIS" grande
+  // "DEVIS"
   doc.setTextColor(...NOIR);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(52);
   doc.text('DEVIS', PL, y + 19);
 
-  // sous-titre monospace
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(...GRIS_2);
@@ -68,7 +71,7 @@ export function generateQuotePDF(quoteData) {
   const dateObj   = quoteDate instanceof Date ? quoteDate : new Date(quoteDate);
   const dateStr   = fmtDate(dateObj);
   const validDate = new Date(dateObj);
-  validDate.setDate(validDate.getDate() + 15);
+  validDate.setDate(validDate.getDate() + VALIDITY_DAYS);
   const validStr  = fmtDate(validDate);
 
   doc.setFont('helvetica', 'bold');
@@ -79,8 +82,8 @@ export function generateQuotePDF(quoteData) {
 
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...GRIS_1);
-  doc.text(`: ${dateStr}`, PL + 31,     y);
-  doc.text(`: ${validStr}`, PL + 86,    y);
+  doc.text(`: ${dateStr}`,  PL + 31, y);
+  doc.text(`: ${validStr}`, PL + 86, y);
 
   y += 10;
 
@@ -91,9 +94,7 @@ export function generateQuotePDF(quoteData) {
   y += 8;
 
   /* ── ÉMETTEUR / DESTINATAIRE ────────────────────────────────── */
-  const colW = CW / 2 - 4;
-
-  // Gauche — émetteur
+  // Gauche
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
   doc.setTextColor(...GRIS_2);
@@ -107,16 +108,16 @@ export function generateQuotePDF(quoteData) {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(...GRIS_1);
-  doc.text('06 96 55 58 27', PL, y + 11);
+  doc.text('06 96 55 58 27',       PL, y + 11);
   doc.text('matthshouses@gmail.com', PL, y + 16);
-  doc.text('Martinique, France', PL, y + 21);
+  doc.text('Martinique, France',    PL, y + 21);
 
-  // Droite — destinataire
+  // Droite
   const rX = W - PR;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
   doc.setTextColor(...GRIS_2);
-  doc.text('A L\'ATTENTION DE', rX, y, { align: 'right' });
+  doc.text("A L'ATTENTION DE", rX, y, { align: 'right' });
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
@@ -133,11 +134,10 @@ export function generateQuotePDF(quoteData) {
   y += 30;
 
   /* ── TABLEAU ARTICLES ───────────────────────────────────────── */
-  const model = MODELS.find(m => m.id === modelId);
-  const rows  = [];
-
-  const mPrice = modelPrice  ?? model?.price     ?? 0;
+  const model  = MODELS.find(m => m.id === modelId);
+  const mPrice = modelPrice     ?? model?.price     ?? 0;
   const mTrans = modelTransport ?? model?.transport ?? 0;
+  const rows   = [];
 
   if (model) {
     rows.push([`Maison container ${model.label}`, eur(mPrice), pad2(1), eur(mPrice)]);
@@ -149,12 +149,13 @@ export function generateQuotePDF(quoteData) {
     const opt   = OPTIONS.find(o => o.id === optionId);
     if (!opt) return;
     const price = unitPrice ?? opt.price ?? 0;
+    if (price === 0) return;   // ne pas afficher les options sans prix défini
     rows.push([opt.label, eur(price), pad2(quantity), eur(price * quantity)]);
   });
 
   autoTable(doc, {
     startY: y,
-    head: [['DESCRIPTION', 'PRIX', 'QUANTITÉ', 'TOTAL']],
+    head: [['DESCRIPTION', 'PRIX', 'QTÉ', 'TOTAL']],
     body: rows,
     theme: 'plain',
     styles: {
@@ -172,17 +173,13 @@ export function generateQuotePDF(quoteData) {
       fontSize: 7.5,
       cellPadding: { top: 3, bottom: 5, left: 3, right: 3 },
     },
-    bodyStyles: {
-      fillColor: false,
-    },
-    alternateRowStyles: {
-      fillColor: PAPER2,
-    },
+    bodyStyles:          { fillColor: false },
+    alternateRowStyles:  { fillColor: PAPER2 },
     columnStyles: {
-      0: { cellWidth: 'auto',   halign: 'left' },
-      1: { cellWidth: 36,       halign: 'right' },
-      2: { cellWidth: 22,       halign: 'center' },
-      3: { cellWidth: 36,       halign: 'right',  fontStyle: 'bold' },
+      0: { cellWidth: 'auto', halign: 'left' },
+      1: { cellWidth: 40,     halign: 'right' },
+      2: { cellWidth: 18,     halign: 'center' },
+      3: { cellWidth: 40,     halign: 'right', fontStyle: 'bold' },
     },
     margin: { left: PL, right: PR },
     tableLineColor: NOIR,
@@ -192,8 +189,8 @@ export function generateQuotePDF(quoteData) {
   y = doc.lastAutoTable.finalY + 6;
 
   /* ── TOTAUX ────────────────────────────────────────────────── */
-  const totW  = 72;
-  const totX  = W - PR - totW;
+  const totW = 82;
+  const totX = W - PR - totW;
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9.5);
@@ -208,7 +205,7 @@ export function generateQuotePDF(quoteData) {
     y += 5.5;
     doc.setTextColor(...GRIS_2);
     doc.text('Remise', totX, y);
-    doc.text(`− ${eur(discount)}`, W - PR, y, { align: 'right' });
+    doc.text(`- ${eur(discount)}`, W - PR, y, { align: 'right' });
   }
 
   y += 5.5;
@@ -216,21 +213,21 @@ export function generateQuotePDF(quoteData) {
   doc.text('TVA (8,5 %)', totX, y);
   doc.text(eur(totalTVA), W - PR, y, { align: 'right' });
 
-  y += 8;
+  y += 9;
 
-  /* Bande noire TOTAL TTC */
+  // Bande noire TOTAL TTC — hauteur 15 pour loger un grand montant
   doc.setFillColor(...NOIR);
-  doc.roundedRect(totX - 4, y, totW + 4, 13, 1.5, 1.5, 'F');
+  doc.roundedRect(totX - 4, y, totW + 4, 15, 1.5, 1.5, 'F');
   doc.setTextColor(...BLANC);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
-  doc.text('TOTAL TTC', totX, y + 8.5);
-  doc.setFontSize(13);
-  doc.text(eur(totalTTC), W - PR, y + 9, { align: 'right' });
+  doc.text('TOTAL TTC', totX, y + 9.5);
+  doc.setFontSize(12);
+  doc.text(eur(totalTTC), W - PR, y + 10, { align: 'right' });
 
-  y += 16;
+  y += 18;
 
-  /* Acompte 40 % */
+  // Acompte
   if (acompte && acompte > 0) {
     doc.setFillColor(...PAPER2);
     doc.setDrawColor(...LINE);
@@ -239,7 +236,7 @@ export function generateQuotePDF(quoteData) {
     doc.setTextColor(...GRIS_1);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
-    doc.text('Acompte 40 %', totX, y + 6.5);
+    doc.text(`Acompte ${pct(ACOMPTE_RATE)}`, totX, y + 6.5);
     doc.setFont('helvetica', 'bold');
     doc.text(eur(acompte), W - PR, y + 6.5, { align: 'right' });
     y += 13;
@@ -248,8 +245,8 @@ export function generateQuotePDF(quoteData) {
   }
 
   /* ── BAS DE PAGE — termes + signature ──────────────────────── */
-  const botY     = y;
-  const halfW    = CW / 2 - 5;
+  const botY  = y + 4;
+  const halfW = CW / 2 - 5;
 
   // Gauche : termes
   doc.setTextColor(...NOIR);
@@ -258,8 +255,8 @@ export function generateQuotePDF(quoteData) {
   doc.text('Termes et conditions', PL, botY);
 
   const termes = [
-    '· Un acompte de 25 % est requis à la commande',
-    '· Validité du devis : 15 jours',
+    `· Un acompte de ${pct(ACOMPTE_RATE)} est requis à la commande`,
+    `· Validité du devis : ${VALIDITY_DAYS} jours`,
     '· Livraison en Martinique incluse',
   ];
   doc.setFont('helvetica', 'normal');
@@ -273,7 +270,6 @@ export function generateQuotePDF(quoteData) {
   doc.setDrawColor(...LINE);
   doc.setLineWidth(0.25);
   doc.roundedRect(PL, noteY, halfW, 18, 1.5, 1.5, 'FD');
-  // bord gauche épais noir
   doc.setDrawColor(...NOIR);
   doc.setLineWidth(1.2);
   doc.line(PL, noteY + 1, PL, noteY + 17);
@@ -287,7 +283,7 @@ export function generateQuotePDF(quoteData) {
   doc.setTextColor(...GRIS_1);
   const noteText = doc.splitTextToSize(
     "L'Équipe MH vous informe que ce devis est provisoire et que le définitif sera délivré uniquement après la visite du terrain par le transporteur.",
-    halfW - 8
+    halfW - 8,
   );
   doc.setFontSize(7.5);
   doc.text(noteText, PL + 4, noteY + 10);
@@ -298,12 +294,11 @@ export function generateQuotePDF(quoteData) {
   doc.setFontSize(9);
   doc.setTextColor(...NOIR);
   const sigLabel = doc.splitTextToSize(
-    "Signature suivie de la mention « bon pour accord »",
-    halfW
+    'Signature suivie de la mention « bon pour accord »',
+    halfW,
   );
   doc.text(sigLabel, sigX + halfW / 2, botY + 5, { align: 'center' });
 
-  // Ligne signature
   const lineY = botY + 24;
   doc.setDrawColor(...NOIR);
   doc.setLineWidth(0.4);
