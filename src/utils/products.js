@@ -49,7 +49,7 @@ export function getDefaultOptionPrice(optionId, modelId) {
 
 export const TVA_RATE      = 0.085;
 export const ACOMPTE_RATE  = 0.40;
-export const VALIDITY_DAYS = 30;
+export const VALIDITY_DAYS = 14;
 
 /**
  * Calcule les totaux.
