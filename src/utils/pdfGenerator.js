@@ -4,13 +4,12 @@ import { MODELS, OPTIONS, TVA_RATE, ACOMPTE_RATE, VALIDITY_DAYS, fmtDate } from 
 
 /* ─── helpers ──────────────────────────────────────────────────── */
 function eur(n) {
-  // fr-FR utilise U+202F (espace fine insécable) comme séparateur de milliers
-  // jsPDF/Helvetica ne le rend pas → remplace par espace normale
-  const raw = new Intl.NumberFormat('fr-FR', {
-    style: 'currency', currency: 'EUR', minimumFractionDigits: 2,
-  }).format(n);
-  // Remplace tout espace non-breakable (U+00A0, U+202F) par espace ASCII
-  return raw.replace(/[  ]/g, ' ');
+  // Formatage manuel — espace ASCII pure, aucune dependance a Intl (evite U+202F/U+00A0)
+  const abs = Math.abs(n);
+  const [intPart, decPart] = abs.toFixed(2).split('.');
+  const intFmt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '\x20');
+  const sign = n < 0 ? '- ' : '';
+  return sign + intFmt + ',' + decPart + ' \u20AC';
 }
 
 function pad2(n) { return String(n).padStart(2, '0'); }
