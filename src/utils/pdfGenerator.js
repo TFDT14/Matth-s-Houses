@@ -160,7 +160,7 @@ export function generateQuotePDF(quoteData) {
     styles: {
       font: 'helvetica',
       fontSize: 9,
-      cellPadding: { top: 4, bottom: 4, left: 3, right: 3 },
+      cellPadding: { top: 4, bottom: 4, left: 3, right: 5 },
       textColor: NOIR,
       lineColor: LINE,
       lineWidth: 0.25,
@@ -170,7 +170,7 @@ export function generateQuotePDF(quoteData) {
       textColor: GRIS_2,
       fontStyle: 'bold',
       fontSize: 7.5,
-      cellPadding: { top: 3, bottom: 5, left: 3, right: 3 },
+      cellPadding: { top: 3, bottom: 5, left: 3, right: 5 },
     },
     bodyStyles:          { fillColor: false },
     alternateRowStyles:  { fillColor: PAPER2 },
@@ -216,7 +216,7 @@ export function generateQuotePDF(quoteData) {
 
   // Bande noire TOTAL TTC — hauteur 15 pour loger un grand montant
   doc.setFillColor(...NOIR);
-  doc.roundedRect(totX - 4, y, totW + 4, 15, 1.5, 1.5, 'F');
+  doc.roundedRect(totX - 4, y, totW + 8, 15, 1.5, 1.5, 'F');
   doc.setTextColor(...BLANC);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
@@ -231,7 +231,7 @@ export function generateQuotePDF(quoteData) {
     doc.setFillColor(...PAPER2);
     doc.setDrawColor(...LINE);
     doc.setLineWidth(0.25);
-    doc.roundedRect(totX - 4, y, totW + 4, 10, 1, 1, 'FD');
+    doc.roundedRect(totX - 4, y, totW + 8, 10, 1, 1, 'FD');
     doc.setTextColor(...GRIS_1);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
