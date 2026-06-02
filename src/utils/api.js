@@ -6,10 +6,11 @@ const api = axios.create({
 });
 
 export const quotesApi = {
-  getNextNumber: ()         => api.get('/quotes/next-number'),
-  getAll:        (params)   => api.get('/quotes', { params }),
-  create:        (data)     => api.post('/quotes', data),
+  getNextNumber: ()           => api.get('/quotes/next-number'),
+  getAll:        (params)     => api.get('/quotes', { params }),
+  create:        (data)       => api.post('/quotes', data),
   updateStatus:  (id, statut) => api.patch(`/quotes/${id}/status`, { statut }),
+  delete:        (id)         => api.delete(`/quotes/${id}`),
 };
 
 export const mediaApi = {

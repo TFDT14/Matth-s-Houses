@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getNextQuoteNumber, createQuote, getQuotes, updateQuoteStatus } = require('../utils/notionClient');
+const { getNextQuoteNumber, createQuote, getQuotes, updateQuoteStatus, deleteQuote } = require('../utils/notionClient');
 
 router.get('/next-number', async (req, res) => {
   try {
@@ -40,6 +40,16 @@ router.patch('/:id/status', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error('update status error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.delete('/:id', async (req, res) => {
+  try {
+    await deleteQuote(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('delete quote error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });

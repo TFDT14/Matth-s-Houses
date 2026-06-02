@@ -88,4 +88,11 @@ function formatQuote(page) {
   };
 }
 
-module.exports = { getNextQuoteNumber, createQuote, getQuotes, updateQuoteStatus };
+async function deleteQuote(pageId) {
+  return await notion.pages.update({
+    page_id: pageId,
+    archived: true,
+  });
+}
+
+module.exports = { getNextQuoteNumber, createQuote, getQuotes, updateQuoteStatus, deleteQuote };
