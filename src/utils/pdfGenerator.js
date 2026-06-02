@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { MODELS, OPTIONS, TVA_RATE, ACOMPTE_RATE, VALIDITY_DAYS, fmtDate } from './products';
+import { LOGO_BASE64 } from '../assets/logoBase64';
 
 /* ─── helpers ──────────────────────────────────────────────────── */
 function eur(n) {
@@ -44,14 +45,9 @@ export function generateQuotePDF(quoteData) {
   /* ── HEADER ────────────────────────────────────────────────── */
   let y = 16;
 
-  // Carré MH
+  // Logo MH
   const mhX = W - PR - 28;
-  doc.setFillColor(...NOIR);
-  doc.roundedRect(mhX, y, 28, 28, 2, 2, 'F');
-  doc.setTextColor(...BLANC);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
-  doc.text('MH', mhX + 14, y + 17, { align: 'center' });
+  doc.addImage(LOGO_BASE64, 'PNG', mhX, y, 28, 28);
 
   // "DEVIS"
   doc.setTextColor(...NOIR);
