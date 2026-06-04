@@ -30,6 +30,12 @@ export const OPTIONS = [
     id: 'panneaux_ext', label: 'Panneaux métalliques', price: null, cat: 'exterieur',
     pricesByModel: { '20m2': 325, '37m2': 580, '56m2': 812, '74m2': 1043 },
   },
+  // Fondation & aménagement
+  {
+    id: 'pieux', label: 'Pieux de fondation', price: null, cat: 'fondation',
+    pricesByModel: { '20m2': 7000, '37m2': 8000, '56m2': 10000, '74m2': 12000 },
+  },
+  { id: 'micro_station', label: "Micro station d'épuration", price: 7500, cat: 'fondation' },
 ];
 
 export const OPTION_CATS = [
@@ -37,6 +43,7 @@ export const OPTION_CATS = [
   { id: 'fenetres',  label: 'Fenêtres' },
   { id: 'interieur', label: 'Intérieur' },
   { id: 'exterieur', label: 'Extérieur' },
+  { id: 'fondation', label: 'Fondation & aménagement' },
 ];
 
 /** Prix par défaut d'une option (sans override) */
