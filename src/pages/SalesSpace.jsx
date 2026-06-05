@@ -182,6 +182,26 @@ export default function SalesSpace() {
           </div>
         </section>
 
+        {/* ── CATALOGUE DIGITAL ── */}
+        <section>
+          <h2 className="text-sm font-semibold text-mh-text mb-4 sm:mb-5">Catalogue digital</h2>
+          <a href="/catalogue/index.html" target="_blank" rel="noreferrer"
+            className="flex items-center gap-4 bg-white border border-mh-line rounded-xl p-4 sm:p-5
+                       hover:shadow-[0_4px_20px_-8px_rgba(0,0,0,.1)] transition-shadow group">
+            <div className="w-10 h-10 bg-mh-noir rounded-lg flex items-center justify-center shrink-0">
+              <FileText size={18} className="text-white" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-mh-text">Catalogue Matth's Houses — V2</p>
+              <p className="text-xs text-mh-text-4 mt-0.5">Présentation complète des modèles et options</p>
+            </div>
+            <span className="ml-auto text-xs font-medium text-mh-text-3 border border-mh-line px-3 py-1.5 rounded-lg
+                             group-hover:bg-mh-noir group-hover:text-white group-hover:border-mh-noir transition-colors shrink-0">
+              Ouvrir →
+            </span>
+          </a>
+        </section>
+
         {/* ── MÉDIATHÈQUE ── */}
         <section>
           <div className="mb-4 sm:mb-5">
