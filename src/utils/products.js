@@ -1,8 +1,14 @@
 export const MODELS = [
+  // Résidentiel
   { id: '20m2', label: '20m²', price: 21945, transport: 6000 },
   { id: '37m2', label: '37m²', price: 25425, transport: 8000 },
   { id: '56m2', label: '56m²', price: 35365, transport: 10000 },
   { id: '74m2', label: '74m²', price: 43495, transport: 12000 },
+  // Professionnel
+  { id: '10ft', label: '10ft', price: 15700, transport: 6000,  type: 'pro' },
+  { id: '20ft', label: '20ft', price: 17100, transport: 8000,  type: 'pro' },
+  { id: '30ft', label: '30ft', price: 24600, transport: 10000, type: 'pro' },
+  { id: '40ft', label: '40ft', price: 26600, transport: 12000, type: 'pro' },
 ];
 
 export const OPTIONS = [
@@ -19,6 +25,9 @@ export const OPTIONS = [
   { id: 'fenetre_rt',          label: 'Fenêtre coulissante à rupture thermique',  price: 130.00, cat: 'fenetres' },
   { id: 'fenetre_grille',      label: 'Fenêtre à battant aluminium',             price: 138.80, cat: 'fenetres' },
   // Intérieur
+  { id: 'salle_de_bain',          label: 'Salle de bain',                        price: 750,    cat: 'interieur' },
+  { id: 'cuisine_u',              label: 'Cuisine U',                            price: 700,    cat: 'interieur' },
+  { id: 'chambre',                label: 'Chambre / Pièce',                      price: 235,    cat: 'interieur' },
   { id: 'meubles_hauts',          label: 'Placards muraux de cuisine',           price: 185.07, cat: 'interieur' },
   { id: 'vasque_miroir',          label: 'Meuble vasque avec miroir',            price: 0,      cat: 'interieur' },
   { id: 'vasque_miroir_eclairant',label: 'Meuble vasque avec miroir éclairant',  price: 0,      cat: 'interieur' },

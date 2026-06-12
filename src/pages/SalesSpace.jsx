@@ -138,7 +138,7 @@ export default function SalesSpace() {
         <section>
           <h2 className="text-sm font-semibold text-mh-text mb-4 sm:mb-5">Nos modèles</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-            {MODELS.map(m => {
+            {MODELS.filter(m => !m.type).map(m => {
               const info    = MODEL_INFO[m.id] ?? {};
               const prixTTC = (m.price + m.transport) * TVA;
               return (

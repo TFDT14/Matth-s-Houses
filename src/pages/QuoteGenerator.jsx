@@ -149,21 +149,22 @@ export default function QuoteGenerator() {
           {/* 2 · Modèle */}
           <section className="card">
             <SectionHeader n={2} label="Modèle de maison" />
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 mt-4">
-              {MODELS.map(m => (
-                <button key={m.id} onClick={() => setModelId(m.id)}
-                  className={`p-4 rounded-mh border-2 text-left transition-all ${
-                    modelId === m.id
-                      ? 'border-mh-noir bg-mh-paper-3'
-                      : 'border-mh-line bg-white hover:border-mh-line-2'
-                  }`}>
-                  <p className={`font-bold text-2xl tracking-tight ${modelId === m.id ? 'text-mh-noir' : 'text-mh-text-2'}`}>
-                    {m.label}
-                  </p>
-                  <p className="text-[11px] text-mh-text-4 mt-1">Maison container</p>
-                  <p className="text-sm font-semibold text-mh-text mt-2">{fmt(priceFns.getModelPrice(m.id))}</p>
-                  <p className="text-[11px] text-mh-text-3">+ {fmt(priceFns.getModelTransport(m.id))} transport</p>
-                </button>
+
+            {/* Résidentiel */}
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-mh-text-4 mt-4 mb-2">Résidentiel</p>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+              {MODELS.filter(m => !m.type).map(m => (
+                <ModelBtn key={m.id} m={m} selected={modelId === m.id}
+                  onClick={() => setModelId(m.id)} priceFns={priceFns} />
+              ))}
+            </div>
+
+            {/* Professionnel */}
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-mh-text-4 mt-5 mb-2">Professionnel</p>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+              {MODELS.filter(m => m.type === 'pro').map(m => (
+                <ModelBtn key={m.id} m={m} selected={modelId === m.id}
+                  onClick={() => setModelId(m.id)} priceFns={priceFns} pro />
               ))}
             </div>
           </section>
@@ -306,6 +307,21 @@ export default function QuoteGenerator() {
   );
 }
 
+function ModelBtn({ m, selected, onClick, priceFns, pro }) {
+  return (
+    <button onClick={onClick}
+      className={`p-4 rounded-mh border-2 text-left transition-all ${
+        selected ? 'border-mh-noir bg-mh-paper-3' : 'border-mh-line bg-white hover:border-mh-line-2'
+      }`}>
+      <p className={`font-bold text-2xl tracking-tight ${selected ? 'text-mh-noir' : 'text-mh-text-2'}`}>
+        {m.label}
+      </p>
+      <p className="text-[11px] text-mh-text-4 mt-1">{pro ? 'Container pro' : 'Maison container'}</p>
+      <p className="text-sm font-semibold text-mh-text mt-2">{fmt(priceFns.getModelPrice(m.id))}</p>
+      <p className="text-[11px] text-mh-text-3">+ {fmt(priceFns.getModelTransport(m.id))} transport</p>
+    </button>
+  );
+}
 function SectionHeader({ n, label }) {
   return (
     <div className="flex items-center gap-2.5">
