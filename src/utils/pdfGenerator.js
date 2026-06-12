@@ -135,7 +135,8 @@ export function generateQuotePDF(quoteData) {
   const rows   = [];
 
   if (model) {
-    rows.push([`Maison container ${model.label}`, eur(mPrice), pad2(1), eur(mPrice)]);
+    const modelDesc = model.type === 'pro' ? `Container professionnel ${model.label}` : `Maison container ${model.label}`;
+    rows.push([modelDesc, eur(mPrice), pad2(1), eur(mPrice)]);
     rows.push(['Transport & livraison (Martinique)', eur(mTrans), pad2(1), eur(mTrans)]);
   }
 
@@ -315,6 +316,6 @@ export function generateQuotePDF(quoteData) {
 
 export function downloadPDF(quoteData) {
   const doc  = generateQuotePDF(quoteData);
-  const name = `${quoteData.quoteNumber}-${quoteData.clientName.replace(/\s+/g, '_')}.pdf`;
+  const name = `Devis-${quoteData.quoteNumber}-${quoteData.clientName.replace(/\s+/g, '_')}.pdf`;
   doc.save(name);
 }
