@@ -5,10 +5,10 @@ export const MODELS = [
   { id: '56m2', label: '56m²', price: 35365, transport: 10000 },
   { id: '74m2', label: '74m²', price: 43495, transport: 12000 },
   // Professionnel
-  { id: '10ft', label: '10ft', price: 15700, transport: 6000,  type: 'pro' },
-  { id: '20ft', label: '20ft', price: 17100, transport: 8000,  type: 'pro' },
-  { id: '30ft', label: '30ft', price: 24600, transport: 10000, type: 'pro' },
-  { id: '40ft', label: '40ft', price: 26600, transport: 12000, type: 'pro' },
+  { id: '10ft', label: '20m²', price: 15700, transport: 6000,  type: 'pro' },
+  { id: '20ft', label: '37m²', price: 17100, transport: 8000,  type: 'pro' },
+  { id: '30ft', label: '56m²', price: 24600, transport: 10000, type: 'pro' },
+  { id: '40ft', label: '74m²', price: 26600, transport: 12000, type: 'pro' },
 ];
 
 export const OPTIONS = [
