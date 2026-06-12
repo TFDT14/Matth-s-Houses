@@ -23,6 +23,7 @@ export default function QuoteGenerator() {
 
   const totals        = calculateTotals(modelId, opts, discount, priceFns);
   const selectedModel = MODELS.find(m => m.id === modelId);
+  const isPro         = selectedModel?.type === 'pro';
   const activeOpts    = opts.filter(o => o.quantity > 0);
 
   const fetchNumber = useCallback(() => {
@@ -174,7 +175,7 @@ export default function QuoteGenerator() {
             <SectionHeader n={3} label="Options" />
             <div className="mt-4 space-y-5">
               {OPTION_CATS.map(cat => {
-                const catOpts = OPTIONS.filter(o => o.cat === cat.id);
+                const catOpts = OPTIONS.filter(o => o.cat === cat.id && (!o.proOnly || isPro));
                 if (!catOpts.length) return null;
                 return (
                   <div key={cat.id}>

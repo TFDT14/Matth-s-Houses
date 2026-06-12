@@ -25,9 +25,9 @@ export const OPTIONS = [
   { id: 'fenetre_rt',          label: 'Fenêtre coulissante à rupture thermique',  price: 130.00, cat: 'fenetres' },
   { id: 'fenetre_grille',      label: 'Fenêtre à battant aluminium',             price: 138.80, cat: 'fenetres' },
   // Intérieur
-  { id: 'salle_de_bain',          label: 'Salle de bain',                        price: 750,    cat: 'interieur' },
-  { id: 'cuisine_u',              label: 'Cuisine U',                            price: 700,    cat: 'interieur' },
-  { id: 'chambre',                label: 'Chambre / Pièce',                      price: 235,    cat: 'interieur' },
+  { id: 'salle_de_bain',          label: 'Salle de bain',                        price: 750,    cat: 'interieur', proOnly: true },
+  { id: 'cuisine_u',              label: 'Cuisine U',                            price: 700,    cat: 'interieur', proOnly: true },
+  { id: 'chambre',                label: 'Chambre / Pièce',                      price: 235,    cat: 'interieur', proOnly: true },
   { id: 'meubles_hauts',          label: 'Placards muraux de cuisine',           price: 185.07, cat: 'interieur' },
   { id: 'vasque_miroir',          label: 'Meuble vasque avec miroir',            price: 0,      cat: 'interieur' },
   { id: 'vasque_miroir_eclairant',label: 'Meuble vasque avec miroir éclairant',  price: 0,      cat: 'interieur' },
@@ -41,10 +41,10 @@ export const OPTIONS = [
   },
   // Fondation & aménagement
   {
-    id: 'pieux', label: 'Pieux de fondation', price: null, cat: 'fondation',
-    pricesByModel: { '20m2': 7000, '37m2': 8000, '56m2': 10000, '74m2': 12000 },
+    id: 'pieux', label: 'Pieux de fondation', price: null, cat: 'fondation', proOnly: true,
+    pricesByModel: { '10ft': 7000, '20ft': 8000, '30ft': 10000, '40ft': 12000 },
   },
-  { id: 'micro_station', label: "Micro station d'épuration", price: 7500, cat: 'fondation' },
+  { id: 'micro_station', label: "Micro station d'épuration", price: 7500, cat: 'fondation', proOnly: true },
 ];
 
 export const OPTION_CATS = [
