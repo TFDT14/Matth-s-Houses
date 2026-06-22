@@ -41,10 +41,10 @@ export const OPTIONS = [
   },
   // Fondation & aménagement
   {
-    id: 'pieux', label: 'Pieux de fondation', price: null, cat: 'fondation', proOnly: true,
-    pricesByModel: { '10ft': 7000, '20ft': 8000, '30ft': 10000, '40ft': 12000 },
+    id: 'pieux', label: 'Pieux de fondation', price: null, cat: 'fondation',
+    pricesByModel: { '20m2': 7000, '37m2': 8000, '56m2': 10000, '74m2': 12000, '10ft': 7000, '20ft': 8000, '30ft': 10000, '40ft': 12000 },
   },
-  { id: 'micro_station', label: "Micro station d'épuration", price: 7500, cat: 'fondation', proOnly: true },
+  { id: 'micro_station', label: "Micro station d'épuration", price: 7500, cat: 'fondation' },
 ];
 
 export const OPTION_CATS = [
