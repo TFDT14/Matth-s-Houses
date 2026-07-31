@@ -175,7 +175,7 @@ export default function QuoteGenerator() {
             <SectionHeader n={3} label="Options" />
             <div className="mt-4 space-y-5">
               {OPTION_CATS.map(cat => {
-                const catOpts = OPTIONS.filter(o => o.cat === cat.id && (!o.proOnly || isPro));
+                const catOpts = OPTIONS.filter(o => o.cat === cat.id && (!o.proOnly || isPro) && (!o.residentialOnly || !isPro));
                 if (!catOpts.length) return null;
                 return (
                   <div key={cat.id}>

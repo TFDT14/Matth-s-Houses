@@ -1,9 +1,9 @@
 export const MODELS = [
   // Résidentiel
-  { id: '20m2', label: '20m²', price: 21945, transport: 6000 },
-  { id: '37m2', label: '37m²', price: 25425, transport: 8000 },
-  { id: '56m2', label: '56m²', price: 35365, transport: 10000 },
-  { id: '74m2', label: '74m²', price: 43495, transport: 12000 },
+  { id: '20m2', label: '20m²', price: 19360,   transport: 6000 },
+  { id: '37m2', label: '37m²', price: 22010,   transport: 8000 },
+  { id: '56m2', label: '56m²', price: 28123.5, transport: 10000 },
+  { id: '74m2', label: '74m²', price: 33625,   transport: 12000 },
   // Professionnel
   { id: '10ft', label: '20m²', price: 15700, transport: 6000,  type: 'pro' },
   { id: '20ft', label: '37m²', price: 17100, transport: 8000,  type: 'pro' },
@@ -35,6 +35,14 @@ export const OPTIONS = [
   { id: 'plafond_interieur',      label: 'Plafond intérieur',                    price: 0,      cat: 'interieur' },
   { id: 'mur_vitre',              label: 'Mur rideau en verre',                  price: 742.64, cat: 'interieur' },
   // Extérieur — prix variable selon le modèle
+  {
+    id: 'toit', label: 'Toit', price: null, cat: 'exterieur', residentialOnly: true,
+    pricesByModel: { '20m2': 880, '37m2': 1580, '56m2': 2036.5, '74m2': 3025 },
+  },
+  {
+    id: 'terrasse', label: 'Terrasse', price: null, cat: 'exterieur', residentialOnly: true,
+    pricesByModel: { '20m2': 1705, '37m2': 1835, '56m2': 5205, '74m2': 6845 },
+  },
   {
     id: 'panneaux_ext', label: 'Panneaux métalliques', price: null, cat: 'exterieur',
     pricesByModel: { '20m2': 325, '37m2': 580, '56m2': 812, '74m2': 1043 },
