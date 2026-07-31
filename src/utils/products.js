@@ -2,7 +2,7 @@ export const MODELS = [
   // Résidentiel
   { id: '20m2', label: '20m²', price: 19360,   transport: 6000 },
   { id: '37m2', label: '37m²', price: 22010,   transport: 8000 },
-  { id: '56m2', label: '56m²', price: 28123.5, transport: 10000 },
+  { id: '56m2', label: '56m²', price: 28125,   transport: 10000 },
   { id: '74m2', label: '74m²', price: 33625,   transport: 12000 },
   // Professionnel
   { id: '10ft', label: '20m²', price: 15700, transport: 6000,  type: 'pro' },
@@ -37,7 +37,7 @@ export const OPTIONS = [
   // Extérieur — prix variable selon le modèle
   {
     id: 'toit', label: 'Toit', price: null, cat: 'exterieur', residentialOnly: true,
-    pricesByModel: { '20m2': 880, '37m2': 1580, '56m2': 2036.5, '74m2': 3025 },
+    pricesByModel: { '20m2': 880, '37m2': 1580, '56m2': 2035, '74m2': 3025 },
   },
   {
     id: 'terrasse', label: 'Terrasse', price: null, cat: 'exterieur', residentialOnly: true,
