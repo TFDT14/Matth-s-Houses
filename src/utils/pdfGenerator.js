@@ -103,7 +103,7 @@ export function generateQuotePDF(quoteData) {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(...GRIS_1);
-  doc.text('06 96 55 58 27',       PL, y + 11);
+  doc.text('06 96 45 10 48',       PL, y + 11);
   doc.text('matthshouses@gmail.com', PL, y + 16);
   doc.text('Martinique, France',    PL, y + 21);
 
