@@ -1,30 +1,36 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { FileText, Download, Save, Plus, Minus, RefreshCw, CheckCircle, Tag } from 'lucide-react';
-import { MODELS, OPTIONS, OPTION_CATS, calculateTotals, fmt, getDefaultOptionPrice } from '../utils/products';
+import { FileText, Download, Save, Plus, Minus, RefreshCw, CheckCircle, Tag, ChevronDown, Trash2 } from 'lucide-react';
+import {
+  MODELS, OPTIONS, OPTION_CATS, calculateTotals, fmt,
+  isOptionAvailable, activeHouseOptions, houseSubtotal, modelDescription,
+} from '../utils/products';
 import { downloadPDF } from '../utils/pdfGenerator';
 import { quotesApi } from '../utils/api';
 import { usePrices } from '../contexts/PricesContext';
 import Button from '../components/Button';
 
 const INIT_OPTS = OPTIONS.map(o => ({ optionId: o.id, quantity: 0 }));
+let houseSeq = 0;
+const newHouse = () => ({ key: ++houseSeq, modelId: '20m2', qty: 1, opts: INIT_OPTS });
+
+const getModel   = (id) => MODELS.find(m => m.id === id);
+const shortLabel = (id) => { const m = getModel(id); return m ? `${m.label}${m.type === 'pro' ? ' pro' : ''}` : id; };
+const clamp      = (n, max) => Math.max(0, Math.min(max, n));
 
 export default function QuoteGenerator() {
   const { priceFns, getOptionPrice } = usePrices();
 
   const [clientName, setClientName] = useState('');
   const [phone,      setPhone]      = useState('');
-  const [modelId,    setModelId]    = useState('20m2');
-  const [opts,       setOpts]       = useState(INIT_OPTS);
+  const [houses,     setHouses]     = useState(() => [newHouse()]);
+  const [openKey,    setOpenKey]    = useState(() => houses[0].key);
   const [discount,   setDiscount]   = useState(0);
   const [quoteNum,   setQuoteNum]   = useState('MH-…');
   const [saving,     setSaving]     = useState(false);
   const [saved,      setSaved]      = useState(false);
   const [error,      setError]      = useState('');
 
-  const totals        = calculateTotals(modelId, opts, discount, priceFns);
-  const selectedModel = MODELS.find(m => m.id === modelId);
-  const isPro         = selectedModel?.type === 'pro';
-  const activeOpts    = opts.filter(o => o.quantity > 0);
+  const totals = calculateTotals(houses, discount, priceFns);
 
   const fetchNumber = useCallback(() => {
     quotesApi.getNextNumber()
@@ -33,43 +39,64 @@ export default function QuoteGenerator() {
   }, []);
   useEffect(() => { fetchNumber(); }, [fetchNumber]);
 
-  /* ── helpers options ── */
-  const changeQty = (id, delta) =>
-    setOpts(prev => prev.map(o =>
-      o.optionId === id ? { ...o, quantity: Math.max(0, Math.min(10, o.quantity + delta)) } : o
-    ));
-  const setQty = (id, val) =>
-    setOpts(prev => prev.map(o =>
-      o.optionId === id ? { ...o, quantity: Math.max(0, Math.min(10, parseInt(val) || 0)) } : o
-    ));
-
-  /* prix affiché d'une option (context override ou défaut) */
-  const optPrice = (optId) => getOptionPrice(optId, modelId);
+  /* ── maisons ── */
+  const updateHouse = (key, fn) => setHouses(prev => prev.map(h => (h.key === key ? fn(h) : h)));
+  const addHouse = () => {
+    const h = newHouse();
+    setHouses(prev => [...prev, h]);
+    setOpenKey(h.key);
+  };
+  const removeHouse = (key) => {
+    if (!window.confirm('Retirer cette maison du devis ?')) return;
+    setHouses(prev => prev.filter(h => h.key !== key));
+  };
 
   /* ── payloads ── */
   const buildData = () => ({
-    clientName, phone, modelId,
-    modelPrice:     priceFns.getModelPrice(modelId),
-    modelTransport: priceFns.getModelTransport(modelId),
-    selectedOptions: activeOpts.map(o => ({ ...o, unitPrice: optPrice(o.optionId) })),
-    totalHT:  totals.ht,
-    totalTVA: totals.tva,
-    totalTTC: totals.ttc,
-    acompte:  totals.acompte,
-    discount:  totals.discount,
+    clientName, phone,
+    houses: houses.map(h => {
+      const model = getModel(h.modelId);
+      return {
+        description: modelDescription(model),
+        qty:         h.qty,
+        modelPrice:  priceFns.getModelPrice(h.modelId),
+        transport:   priceFns.getModelTransport(h.modelId),
+        options: activeHouseOptions(h).map(o => ({
+          label:     OPTIONS.find(x => x.id === o.optionId).label,
+          unitPrice: getOptionPrice(o.optionId, h.modelId),
+          quantity:  o.quantity,
+        })),
+        subtotal: houseSubtotal(h, priceFns),
+      };
+    }),
+    totalGross: totals.gross,
+    totalHT:    totals.ht,
+    totalTVA:   totals.tva,
+    totalTTC:   totals.ttc,
+    acompte:    totals.acompte,
+    discount:   totals.discount,
     quoteNumber: quoteNum,
     quoteDate: new Date(),
   });
 
   const buildNotionPayload = () => {
-    const optsStr = activeOpts.map(o => {
+    const optsOf = (h) => activeHouseOptions(h).map(o => {
       const opt = OPTIONS.find(x => x.id === o.optionId);
-      return `${opt?.label || o.optionId} ×${o.quantity}`;
+      return `${opt.label} ×${o.quantity}`;
     }).join(', ');
+
+    const single  = houses.length === 1 && houses[0].qty === 1;
+    const optsStr = single
+      ? optsOf(houses[0])
+      : houses.map((h, i) => {
+          const o = optsOf(h);
+          return `Maison ${i + 1} (${shortLabel(h.modelId)} ×${h.qty})${o ? ` : ${o}` : ''}`;
+        }).join(' | ');
     const discStr = totals.discount > 0 ? ` | Remise: -${fmt(totals.discount)}` : '';
+
     return {
       clientName, phone,
-      model:    selectedModel?.label || modelId,
+      model:    houses.length === 1 ? getModel(houses[0].modelId).label : 'Plusieurs maisons',
       options:  optsStr + discStr,
       totalHT:  totals.ht,
       tva:      totals.tva,
@@ -84,7 +111,7 @@ export default function QuoteGenerator() {
     setError(''); return true;
   };
 
-  const handlePDF    = () => { if (!validate()) return; downloadPDF(buildData()); };
+  const handlePDF = () => { if (!validate()) return; downloadPDF(buildData()); };
 
   const handleNotion = async () => {
     if (!validate()) return;
@@ -147,83 +174,34 @@ export default function QuoteGenerator() {
             </div>
           </section>
 
-          {/* 2 · Modèle */}
+          {/* 2 · Maisons */}
+          <div className="flex items-center justify-between px-1 pt-1">
+            <SectionHeader n={2} label={houses.length > 1 ? `Maisons (${houses.length})` : 'Maison'} />
+          </div>
+
+          {houses.map((h, i) => (
+            <HouseCard key={h.key}
+              house={h} index={i}
+              open={openKey === h.key}
+              onToggle={() => setOpenKey(openKey === h.key ? null : h.key)}
+              onRemove={houses.length > 1 ? () => removeHouse(h.key) : null}
+              onChange={(fn) => updateHouse(h.key, fn)}
+              priceFns={priceFns}
+              getOptionPrice={getOptionPrice}
+            />
+          ))}
+
+          <button onClick={addHouse}
+            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-mh border-2 border-dashed border-mh-line-2
+                       text-sm font-medium text-mh-text-3 hover:border-mh-noir hover:text-mh-noir transition-colors">
+            <Plus size={14} /> Ajouter une maison
+          </button>
+
+          {/* 3 · Remise */}
           <section className="card">
-            <SectionHeader n={2} label="Modèle de maison" />
-
-            {/* Résidentiel */}
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-mh-text-4 mt-4 mb-2">Résidentiel</p>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-              {MODELS.filter(m => !m.type).map(m => (
-                <ModelBtn key={m.id} m={m} selected={modelId === m.id}
-                  onClick={() => setModelId(m.id)} priceFns={priceFns} />
-              ))}
-            </div>
-
-            {/* Professionnel */}
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-mh-text-4 mt-5 mb-2">Professionnel</p>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-              {MODELS.filter(m => m.type === 'pro').map(m => (
-                <ModelBtn key={m.id} m={m} selected={modelId === m.id}
-                  onClick={() => setModelId(m.id)} priceFns={priceFns} pro />
-              ))}
-            </div>
-          </section>
-
-          {/* 3 · Options groupées par catégorie */}
-          <section className="card">
-            <SectionHeader n={3} label="Options" />
-            <div className="mt-4 space-y-5">
-              {OPTION_CATS.map(cat => {
-                const catOpts = OPTIONS.filter(o => o.cat === cat.id && (!o.proOnly || isPro) && (!o.residentialOnly || !isPro));
-                if (!catOpts.length) return null;
-                return (
-                  <div key={cat.id}>
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-mh-text-4 mb-2">
-                      {cat.label}
-                    </p>
-                    <div className="space-y-1.5">
-                      {catOpts.map(opt => {
-                        const qty   = opts.find(o => o.optionId === opt.id)?.quantity || 0;
-                        const price = optPrice(opt.id);
-                        return (
-                          <div key={opt.id}
-                            className={`flex items-center justify-between px-3.5 py-2.5 rounded-mh transition-colors ${
-                              qty > 0 ? 'bg-mh-paper-3 border border-mh-line-2' : 'bg-mh-paper-2 hover:bg-mh-paper-3'
-                            }`}>
-                            <div className="min-w-0 flex-1 mr-3">
-                              <span className="text-sm text-mh-text">{opt.label}</span>
-                              {opt.pricesByModel
-                                ? <span className="text-xs text-mh-text-4 ml-2">{fmt(price)} / modèle actuel</span>
-                                : <span className="text-xs text-mh-text-4 ml-2">{fmt(price)}</span>
-                              }
-                            </div>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              {qty > 0 && (
-                                <span className="text-xs font-medium text-mh-text-2 mr-1">{fmt(price * qty)}</span>
-                              )}
-                              <QtyBtn onClick={() => changeQty(opt.id, -1)} disabled={qty === 0}><Minus size={10} /></QtyBtn>
-                              <input type="number" min="0" max="10" value={qty}
-                                onChange={e => setQty(opt.id, e.target.value)}
-                                className="w-9 text-center text-sm font-medium border border-mh-line-2 rounded-lg py-1
-                                           bg-white focus:outline-none focus:ring-1 focus:ring-mh-noir" />
-                              <QtyBtn onClick={() => changeQty(opt.id, 1)} disabled={qty >= 10}><Plus size={10} /></QtyBtn>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-
-          {/* 4 · Remise */}
-          <section className="card">
-            <SectionHeader n={4} label="Remise" />
+            <SectionHeader n={3} label="Remise" />
             <div className="mt-4 max-w-xs">
-              <label className="label">Montant de la remise (€ HT)</label>
+              <label className="label">Montant de la remise sur le total (€ HT)</label>
               <div className="relative">
                 <Tag size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-mh-text-4" />
                 <input type="number" min="0" step="1" value={discount || ''}
@@ -246,24 +224,25 @@ export default function QuoteGenerator() {
           <div className="card space-y-4">
             <h3 className="text-sm font-semibold text-mh-text">Récapitulatif</h3>
 
-            <div className="space-y-1.5 text-[13px]">
-              {selectedModel && (
-                <>
-                  <Row label={`Maison ${selectedModel.label}`} val={fmt(priceFns.getModelPrice(selectedModel.id))} />
-                  <Row label="Transport" val={fmt(priceFns.getModelTransport(selectedModel.id))} />
-                </>
-              )}
-              {activeOpts.map(({ optionId, quantity }) => {
-                const opt = OPTIONS.find(o => o.id === optionId);
-                const p   = optPrice(optionId);
-                if (!opt) return null;
-                return <Row key={optionId} label={`${opt.label} ×${quantity}`} val={fmt(p * quantity)} />;
+            <div className="space-y-3 text-[13px]">
+              {houses.map((h, i) => {
+                const opts = activeHouseOptions(h);
+                return (
+                  <div key={h.key}>
+                    <Row
+                      label={`${houses.length > 1 ? `Maison ${i + 1} · ` : 'Maison '}${shortLabel(h.modelId)}${h.qty > 1 ? ` ×${h.qty}` : ''}`}
+                      val={fmt(houseSubtotal(h, priceFns))} />
+                    <p className="text-[11px] text-mh-text-4 mt-0.5 leading-snug">
+                      Transport inclus{opts.length > 0 && ` · ${opts.map(o => OPTIONS.find(x => x.id === o.optionId).label).join(', ')}`}
+                    </p>
+                  </div>
+                );
               })}
             </div>
 
             <div className="border-t border-mh-line pt-3 space-y-1.5">
               {totals.discount > 0 && (
-                <Row label={`Remise`} val={`- ${fmt(totals.discount)}`} muted />
+                <Row label="Remise" val={`- ${fmt(totals.discount)}`} muted />
               )}
               <Row label="Total HT" val={fmt(totals.ht)} muted />
               <Row label="TVA 8,5 %" val={fmt(totals.tva)} muted />
@@ -305,6 +284,109 @@ export default function QuoteGenerator() {
         </div>
       </div>
     </div>
+  );
+}
+
+function HouseCard({ house, index, open, onToggle, onRemove, onChange, priceFns, getOptionPrice }) {
+  const { modelId, qty, opts } = house;
+  const nOpts = activeHouseOptions(house).length;
+
+  const setModel  = (id) => onChange(h => ({ ...h, modelId: id }));
+  const setHQty   = (n)  => onChange(h => ({ ...h, qty: Math.max(1, Math.min(20, n || 1)) }));
+  const setOptQty = (id, n) => onChange(h => ({
+    ...h, opts: h.opts.map(o => (o.optionId === id ? { ...o, quantity: clamp(n || 0, 10) } : o)),
+  }));
+  const optQty = (id) => opts.find(o => o.optionId === id)?.quantity || 0;
+
+  return (
+    <section className={`card !p-0 overflow-hidden ${open ? 'ring-1 ring-mh-noir' : ''}`}>
+      {/* En-tête */}
+      <div className="flex items-center gap-3 px-4 sm:px-5 py-3.5">
+        <button onClick={onToggle} className="flex-1 min-w-0 flex items-center gap-3 text-left">
+          <ChevronDown size={16} className={`text-mh-text-3 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-mh-text truncate">
+              Maison {index + 1} · {shortLabel(modelId)}
+            </p>
+            <p className="text-[11px] text-mh-text-4">
+              {nOpts === 0 ? 'Aucune option' : `${nOpts} option${nOpts > 1 ? 's' : ''}`} · {fmt(houseSubtotal(house, priceFns))} HT
+            </p>
+          </div>
+        </button>
+
+        <div className="flex items-center gap-1.5 shrink-0" title="Nombre de maisons identiques">
+          <QtyBtn onClick={() => setHQty(qty - 1)} disabled={qty <= 1}><Minus size={10} /></QtyBtn>
+          <span className="w-8 text-center text-sm font-semibold text-mh-text">×{qty}</span>
+          <QtyBtn onClick={() => setHQty(qty + 1)} disabled={qty >= 20}><Plus size={10} /></QtyBtn>
+        </div>
+
+        {onRemove && (
+          <button onClick={onRemove} title="Retirer cette maison"
+            className="p-2 text-mh-text-4 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors shrink-0">
+            <Trash2 size={14} />
+          </button>
+        )}
+      </div>
+
+      {open && (
+        <div className="border-t border-mh-line px-4 sm:px-5 py-4 space-y-5">
+          {/* Modèle */}
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-mh-text-4 mb-2">Résidentiel</p>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+              {MODELS.filter(m => !m.type).map(m => (
+                <ModelBtn key={m.id} m={m} selected={modelId === m.id} onClick={() => setModel(m.id)} priceFns={priceFns} />
+              ))}
+            </div>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-mh-text-4 mt-4 mb-2">Professionnel</p>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+              {MODELS.filter(m => m.type === 'pro').map(m => (
+                <ModelBtn key={m.id} m={m} selected={modelId === m.id} onClick={() => setModel(m.id)} priceFns={priceFns} pro />
+              ))}
+            </div>
+          </div>
+
+          {/* Options */}
+          {OPTION_CATS.map(cat => {
+            const catOpts = OPTIONS.filter(o => o.cat === cat.id && isOptionAvailable(o, modelId));
+            if (!catOpts.length) return null;
+            return (
+              <div key={cat.id}>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-mh-text-4 mb-2">{cat.label}</p>
+                <div className="space-y-1.5">
+                  {catOpts.map(opt => {
+                    const q     = optQty(opt.id);
+                    const price = getOptionPrice(opt.id, modelId);
+                    return (
+                      <div key={opt.id}
+                        className={`flex items-center justify-between px-3.5 py-2.5 rounded-mh transition-colors ${
+                          q > 0 ? 'bg-mh-paper-3 border border-mh-line-2' : 'bg-mh-paper-2 hover:bg-mh-paper-3'
+                        }`}>
+                        <div className="min-w-0 flex-1 mr-3">
+                          <span className="text-sm text-mh-text">{opt.label}</span>
+                          <span className="text-xs text-mh-text-4 ml-2">
+                            {fmt(price)}{opt.pricesByModel ? ' / modèle actuel' : ''}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {q > 0 && <span className="text-xs font-medium text-mh-text-2 mr-1">{fmt(price * q)}</span>}
+                          <QtyBtn onClick={() => setOptQty(opt.id, q - 1)} disabled={q === 0}><Minus size={10} /></QtyBtn>
+                          <input type="number" min="0" max="10" value={q}
+                            onChange={e => setOptQty(opt.id, parseInt(e.target.value))}
+                            className="w-9 text-center text-sm font-medium border border-mh-line-2 rounded-lg py-1
+                                       bg-white focus:outline-none focus:ring-1 focus:ring-mh-noir" />
+                          <QtyBtn onClick={() => setOptQty(opt.id, q + 1)} disabled={q >= 10}><Plus size={10} /></QtyBtn>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
   );
 }
 

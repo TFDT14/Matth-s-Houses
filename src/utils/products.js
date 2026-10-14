@@ -75,30 +75,42 @@ export const TVA_RATE      = 0.085;
 export const ACOMPTE_RATE  = 0.40;
 export const VALIDITY_DAYS = 14;
 
-/**
- * Calcule les totaux.
- * @param {string}   modelId
- * @param {Array}    selectedOptions  [{optionId, quantity}]
- * @param {number}   discount         remise en euros HT
- * @param {object}   priceFns         { getModelPrice, getModelTransport, getOptionPrice } (optionnel)
- */
-export function calculateTotals(modelId, selectedOptions = [], discount = 0, priceFns = null) {
-  const getMP  = (id) => priceFns?.getModelPrice(id)     ?? MODELS.find(m => m.id === id)?.price     ?? 0;
-  const getTR  = (id) => priceFns?.getModelTransport(id) ?? MODELS.find(m => m.id === id)?.transport ?? 0;
-  const getOP  = (optId, mdlId) => priceFns?.getOptionPrice(optId, mdlId) ?? getDefaultOptionPrice(optId, mdlId);
+export function isOptionAvailable(opt, modelId) {
+  const isPro = MODELS.find(m => m.id === modelId)?.type === 'pro';
+  return (!opt.proOnly || isPro) && (!opt.residentialOnly || !isPro);
+}
 
-  let ht = getMP(modelId) + getTR(modelId);
-  selectedOptions.forEach(({ optionId, quantity }) => {
-    if (quantity > 0) ht += getOP(optionId, modelId) * quantity;
+export function modelDescription(model) {
+  return model.type === 'pro' ? `Container professionnel ${model.label}` : `Maison container ${model.label}`;
+}
+
+/** Options actives d'une maison (qté > 0 et disponibles pour son modèle) */
+export function activeHouseOptions(house) {
+  return house.opts.filter(o => {
+    if (o.quantity < 1) return false;
+    const opt = OPTIONS.find(x => x.id === o.optionId);
+    return opt && isOptionAvailable(opt, house.modelId);
   });
+}
 
-  const discAmt = Math.min(Math.max(0, discount || 0), ht);
-  ht = round(ht - discAmt);
+/** Total HT d'une maison, quantité de maisons comprise */
+export function houseSubtotal(house, priceFns) {
+  let unit = priceFns.getModelPrice(house.modelId) + priceFns.getModelTransport(house.modelId);
+  activeHouseOptions(house).forEach(({ optionId, quantity }) => {
+    unit += priceFns.getOptionPrice(optionId, house.modelId) * quantity;
+  });
+  return round(unit * house.qty);
+}
 
+/** houses: [{ modelId, qty, opts: [{optionId, quantity}] }] — remise en € HT sur le total */
+export function calculateTotals(houses, discount, priceFns) {
+  const gross   = round(houses.reduce((s, h) => s + houseSubtotal(h, priceFns), 0));
+  const discAmt = Math.min(Math.max(0, discount || 0), gross);
+  const ht      = round(gross - discAmt);
   const tva     = round(ht * TVA_RATE);
   const ttc     = round(ht + tva);
   const acompte = round(ttc * ACOMPTE_RATE);
-  return { ht, tva, ttc, acompte, discount: discAmt };
+  return { gross, ht, tva, ttc, acompte, discount: discAmt };
 }
 
 function round(n) { return Math.round(n * 100) / 100; }

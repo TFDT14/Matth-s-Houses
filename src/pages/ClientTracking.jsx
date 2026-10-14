@@ -4,7 +4,7 @@ import { quotesApi } from '../utils/api';
 import { fmt, fmtDate } from '../utils/products';
 
 const STATUTS = ['Tous', 'En attente', 'Accepté', 'Refusé', 'En cours'];
-const MODELS  = ['Tous', '20m²', '37m²', '56m²', '74m²'];
+const MODELS  = ['Tous', '20m²', '37m²', '56m²', '74m²', 'Plusieurs maisons'];
 
 const STATUS_STYLE = {
   'En attente': 'bg-amber-50  text-amber-700  border-amber-200',

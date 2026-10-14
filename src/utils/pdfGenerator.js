@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { MODELS, OPTIONS, TVA_RATE, ACOMPTE_RATE, VALIDITY_DAYS, fmtDate } from './products';
+import { ACOMPTE_RATE, VALIDITY_DAYS, fmtDate } from './products';
 import { LOGO_BASE64 } from '../assets/logoBase64';
 
 /* ─── helpers ──────────────────────────────────────────────────── */
@@ -28,9 +28,8 @@ const PAPER2 = [250, 250, 249];
 /* ─── générateur principal ─────────────────────────────────────── */
 export function generateQuotePDF(quoteData) {
   const {
-    clientName, phone, modelId, selectedOptions = [],
-    modelPrice, modelTransport,
-    totalHT, totalTVA, totalTTC, acompte, discount = 0,
+    clientName, phone, houses,
+    totalGross, totalHT, totalTVA, totalTTC, acompte, discount = 0,
     quoteNumber, quoteDate,
   } = quoteData;
 
@@ -129,24 +128,27 @@ export function generateQuotePDF(quoteData) {
   y += 30;
 
   /* ── TABLEAU ARTICLES ───────────────────────────────────────── */
-  const model  = MODELS.find(m => m.id === modelId);
-  const mPrice = modelPrice     ?? model?.price     ?? 0;
-  const mTrans = modelTransport ?? model?.transport ?? 0;
-  const rows   = [];
+  const rows    = [];
+  const grouped = houses.length > 1;
 
-  if (model) {
-    const modelDesc = model.type === 'pro' ? `Container professionnel ${model.label}` : `Maison container ${model.label}`;
-    rows.push([modelDesc, eur(mPrice), pad2(1), eur(mPrice)]);
-    rows.push(['Transport & livraison (Martinique)', eur(mTrans), pad2(1), eur(mTrans)]);
-  }
-
-  selectedOptions.forEach(({ optionId, quantity, unitPrice }) => {
-    if (quantity < 1) return;
-    const opt   = OPTIONS.find(o => o.id === optionId);
-    if (!opt) return;
-    const price = unitPrice ?? opt.price ?? 0;
-    if (price === 0) return;   // ne pas afficher les options sans prix défini
-    rows.push([opt.label, eur(price), pad2(quantity), eur(price * quantity)]);
+  houses.forEach((h, i) => {
+    if (grouped) {
+      const title = `Maison ${i + 1}  —  ${h.description}${h.qty > 1 ? `  (x${h.qty})` : ''}`;
+      rows.push([{ content: title, colSpan: 4, styles: { fontStyle: 'bold', fontSize: 9, fillColor: LINE, textColor: NOIR } }]);
+    }
+    rows.push([h.description, eur(h.modelPrice), pad2(h.qty), eur(h.modelPrice * h.qty)]);
+    rows.push(['Transport & livraison (Martinique)', eur(h.transport), pad2(h.qty), eur(h.transport * h.qty)]);
+    h.options.forEach(({ label, unitPrice, quantity }) => {
+      if (unitPrice === 0) return;   // ne pas afficher les options sans prix défini
+      const q = quantity * h.qty;
+      rows.push([label, eur(unitPrice), pad2(q), eur(unitPrice * q)]);
+    });
+    if (grouped) {
+      rows.push([
+        { content: `Sous-total maison ${i + 1}`, colSpan: 3, styles: { halign: 'right', fontStyle: 'italic', textColor: GRIS_1 } },
+        { content: eur(h.subtotal), styles: { fontStyle: 'bold' } },
+      ]);
+    }
   });
 
   autoTable(doc, {
@@ -184,6 +186,13 @@ export function generateQuotePDF(quoteData) {
 
   y = doc.lastAutoTable.finalY + 6;
 
+  const pageBottom = doc.internal.pageSize.getHeight() - 8;
+  // Bloc totaux ≈ 58 mm
+  if (y + 58 > pageBottom) {
+    doc.addPage();
+    y = 20;
+  }
+
   /* ── TOTAUX ────────────────────────────────────────────────── */
   const totW = 82;
   const totX = W - PR - totW;
@@ -194,7 +203,7 @@ export function generateQuotePDF(quoteData) {
   // Sous-total HT
   doc.setTextColor(...GRIS_1);
   doc.text('Sous-total HT', totX, y);
-  doc.text(eur(totalHT), W - PR, y, { align: 'right' });
+  doc.text(eur(totalGross), W - PR, y, { align: 'right' });
 
   // Remise (si > 0)
   if (discount > 0) {
@@ -202,6 +211,10 @@ export function generateQuotePDF(quoteData) {
     doc.setTextColor(...GRIS_2);
     doc.text('Remise', totX, y);
     doc.text(`- ${eur(discount)}`, W - PR, y, { align: 'right' });
+    y += 5.5;
+    doc.setTextColor(...GRIS_1);
+    doc.text('Total HT', totX, y);
+    doc.text(eur(totalHT), W - PR, y, { align: 'right' });
   }
 
   y += 5.5;
@@ -241,6 +254,11 @@ export function generateQuotePDF(quoteData) {
   }
 
   /* ── BAS DE PAGE — termes + signature ──────────────────────── */
+  // Bloc conditions + signature + pied ≈ 72 mm
+  if (y + 72 > pageBottom) {
+    doc.addPage();
+    y = 16;
+  }
   const botY  = y + 4;
   const halfW = CW / 2 - 5;
 
