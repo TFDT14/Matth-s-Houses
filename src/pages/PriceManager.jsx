@@ -63,14 +63,12 @@ export default function PriceManager() {
       const key = `opt_${o.id}`;
       if (getLocal(key) !== undefined) updateOptionPrice(o.id, getLocal(key));
     });
-    // Panneaux extérieurs (variable par modèle)
-    const panneaux = OPTIONS.find(o => o.id === 'panneaux_ext');
-    if (panneaux) {
+    OPTIONS.filter(o => o.pricesByModel).forEach(o => {
       MODELS.forEach(m => {
-        const key = `opt_panneaux_ext_${m.id}`;
-        if (getLocal(key) !== undefined) updateOptionPrice('panneaux_ext', getLocal(key), m.id);
+        const key = `opt_${o.id}_${m.id}`;
+        if (getLocal(key) !== undefined) updateOptionPrice(o.id, getLocal(key), m.id);
       });
-    }
+    });
     setLocalVals({});
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
@@ -138,9 +136,9 @@ export default function PriceManager() {
                   {o.pricesByModel ? (
                     /* Prix par modèle */
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      {MODELS.map(m => (
+                      {MODELS.filter(m => (!o.proOnly || m.type === 'pro') && (!o.residentialOnly || m.type !== 'pro')).map(m => (
                         <div key={m.id}>
-                          <label className="text-[10px] text-mh-text-4 font-mono uppercase tracking-wide block mb-1">{m.label}</label>
+                          <label className="text-[10px] text-mh-text-4 font-mono uppercase tracking-wide block mb-1">{m.label}{m.type === 'pro' && ' pro'}</label>
                           <PriceField
                             value={val(`opt_${o.id}_${m.id}`, getOptionPrice(o.id, m.id))}
                             onChange={v => setLocal(`opt_${o.id}_${m.id}`, v)}

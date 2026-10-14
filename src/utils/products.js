@@ -36,8 +36,8 @@ export const OPTIONS = [
   { id: 'mur_vitre',              label: 'Mur rideau en verre',                  price: 742.64, cat: 'interieur' },
   // Extérieur — prix variable selon le modèle
   {
-    id: 'toit', label: 'Toit', price: null, cat: 'exterieur', residentialOnly: true,
-    pricesByModel: { '20m2': 880, '37m2': 1580, '56m2': 2035, '74m2': 3025 },
+    id: 'toit', label: 'Toit', price: null, cat: 'exterieur',
+    pricesByModel: { '20m2': 880, '37m2': 1580, '56m2': 2035, '74m2': 3025, '10ft': 0, '20ft': 0, '30ft': 0, '40ft': 0 },
   },
   {
     id: 'terrasse', label: 'Terrasse', price: null, cat: 'exterieur', residentialOnly: true,
