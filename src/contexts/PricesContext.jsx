@@ -1,21 +1,29 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
-import { MODELS, OPTIONS, getDefaultOptionPrice } from '../utils/products';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { MODELS, OPTIONS } from '../utils/products';
+import { pricesApi } from '../utils/api';
 
-const STORAGE_KEY = 'mh_prices_v1';
+// Copie locale des prix partagés, utilisée si le serveur est injoignable
+const CACHE_KEY = 'mh_prices_shared_v2';
 const PricesContext = createContext(null);
 
-function load() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
+function loadCache() {
+  try { return JSON.parse(localStorage.getItem(CACHE_KEY) || '{}'); }
   catch { return {}; }
+}
+function writeCache(v) {
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify(v)); } catch { /* stockage indisponible */ }
 }
 
 export function PricesProvider({ children }) {
-  const [ov, setOv] = useState(load);
+  const [ov, setOv]         = useState(loadCache);
+  const [synced, setSynced] = useState(false);
 
-  const save = useCallback((next) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    setOv(next);
-  }, []);
+  const refresh = useCallback(() =>
+    pricesApi.get()
+      .then(r => { setOv(r.data || {}); writeCache(r.data || {}); setSynced(true); })
+      .catch(() => setSynced(false)),
+  []);
+  useEffect(() => { refresh(); }, [refresh]);
 
   /* ── getters ── */
   const getModelPrice = useCallback((id) =>
@@ -29,33 +37,22 @@ export function PricesProvider({ children }) {
   const getOptionPrice = useCallback((optId, modelId) => {
     const opt = OPTIONS.find(o => o.id === optId);
     if (!opt) return 0;
-    if (opt.pricesByModel) {
-      // option à prix variable par modèle
-      return ov.varOptions?.[optId]?.[modelId] ?? opt.pricesByModel[modelId] ?? 0;
-    }
+    if (opt.pricesByModel) return ov.varOptions?.[optId]?.[modelId] ?? opt.pricesByModel[modelId] ?? 0;
     return ov.options?.[optId] ?? opt.price ?? 0;
   }, [ov]);
 
-  /* ── setters ── */
-  const updateModelPrice = useCallback((modelId, field, value) =>
-    save({ ...ov, models: { ...ov.models, [modelId]: { ...(ov.models?.[modelId] || {}), [field]: Number(value) } } }),
-  [ov, save]);
+  /* ── enregistrement (partagé entre tous les appareils) ── */
+  const saveOverrides = useCallback(async (next) => {
+    const { data } = await pricesApi.save(next);
+    setOv(data);
+    writeCache(data);
+    setSynced(true);
+  }, []);
 
-  const updateOptionPrice = useCallback((optId, value, modelId = null) => {
-    if (modelId) {
-      save({ ...ov, varOptions: { ...ov.varOptions, [optId]: { ...(ov.varOptions?.[optId] || {}), [modelId]: Number(value) } } });
-    } else {
-      save({ ...ov, options: { ...ov.options, [optId]: Number(value) } });
-    }
-  }, [ov, save]);
-
-  const resetAll = useCallback(() => { localStorage.removeItem(STORAGE_KEY); setOv({}); }, []);
-
-  /* objet passé à calculateTotals */
   const priceFns = { getModelPrice, getModelTransport, getOptionPrice };
 
   return (
-    <PricesContext.Provider value={{ priceFns, getModelPrice, getModelTransport, getOptionPrice, updateModelPrice, updateOptionPrice, resetAll }}>
+    <PricesContext.Provider value={{ priceFns, getModelPrice, getModelTransport, getOptionPrice, overrides: ov, saveOverrides, refresh, synced }}>
       {children}
     </PricesContext.Provider>
   );

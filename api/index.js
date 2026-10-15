@@ -14,9 +14,11 @@ app.use(express.json({ limit: '10mb' }));
 
 const quotesRouter = require('./routes/quotes');
 const mediaRouter  = require('./routes/media');
+const pricesRouter = require('./routes/prices');
 
 app.use('/api/quotes', quotesRouter);
 app.use('/api/media',  mediaRouter);
+app.use('/api/prices', pricesRouter);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

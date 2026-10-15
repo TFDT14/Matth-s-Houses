@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Save, RotateCcw, Check, Lock } from 'lucide-react';
 import { MODELS, OPTIONS, OPTION_CATS } from '../utils/products';
 import { usePrices } from '../contexts/PricesContext';
@@ -8,13 +8,17 @@ const ADMIN_CODE = import.meta.env.VITE_ADMIN_CODE || import.meta.env.VITE_PRO_C
 
 export default function PriceManager() {
   const { getModelPrice, getModelTransport, getOptionPrice,
-          updateModelPrice, updateOptionPrice, resetAll } = usePrices();
+          overrides, saveOverrides, refresh, synced } = usePrices();
 
   const [unlocked, setUnlocked]   = useState(false);
   const [code, setCode]           = useState('');
   const [codeErr, setCodeErr]     = useState('');
   const [saved, setSaved]         = useState(false);
+  const [saving, setSaving]       = useState(false);
+  const [saveErr, setSaveErr]     = useState('');
   const [localVals, setLocalVals] = useState({});
+
+  useEffect(() => { if (unlocked) refresh(); }, [unlocked, refresh]);
 
   /* ── Unlock ── */
   const handleUnlock = (e) => {
@@ -50,32 +54,47 @@ export default function PriceManager() {
   const getLocal = (key) => localVals[key];
   const setLocal = (key, val) => setLocalVals(prev => ({ ...prev, [key]: val }));
 
+  const persist = async (next) => {
+    setSaving(true); setSaveErr('');
+    try {
+      await saveOverrides(next);
+      setLocalVals({});
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch {
+      setSaveErr("Échec de l'enregistrement — vérifiez la connexion et réessayez.");
+    }
+    setSaving(false);
+  };
+
   const saveAll = () => {
-    // Models
+    const next = {
+      models:     structuredClone(overrides.models     || {}),
+      options:    { ...(overrides.options || {}) },
+      varOptions: structuredClone(overrides.varOptions || {}),
+    };
     MODELS.forEach(m => {
-      const pKey = `model_${m.id}_price`;
-      const tKey = `model_${m.id}_transport`;
-      if (getLocal(pKey) !== undefined) updateModelPrice(m.id, 'price',     getLocal(pKey));
-      if (getLocal(tKey) !== undefined) updateModelPrice(m.id, 'transport', getLocal(tKey));
-    });
-    // Options fixes
-    OPTIONS.filter(o => !o.pricesByModel).forEach(o => {
-      const key = `opt_${o.id}`;
-      if (getLocal(key) !== undefined) updateOptionPrice(o.id, getLocal(key));
-    });
-    OPTIONS.filter(o => o.pricesByModel).forEach(o => {
-      MODELS.forEach(m => {
-        const key = `opt_${o.id}_${m.id}`;
-        if (getLocal(key) !== undefined) updateOptionPrice(o.id, getLocal(key), m.id);
+      ['price', 'transport'].forEach(field => {
+        const v = getLocal(`model_${m.id}_${field}`);
+        if (v !== undefined) next.models[m.id] = { ...(next.models[m.id] || {}), [field]: Number(v) };
       });
     });
-    setLocalVals({});
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    OPTIONS.forEach(o => {
+      if (o.pricesByModel) {
+        MODELS.forEach(m => {
+          const v = getLocal(`opt_${o.id}_${m.id}`);
+          if (v !== undefined) next.varOptions[o.id] = { ...(next.varOptions[o.id] || {}), [m.id]: Number(v) };
+        });
+      } else {
+        const v = getLocal(`opt_${o.id}`);
+        if (v !== undefined) next.options[o.id] = Number(v);
+      }
+    });
+    persist(next);
   };
 
   const handleReset = () => {
-    if (confirm('Remettre tous les prix par défaut ?')) { resetAll(); setLocalVals({}); }
+    if (confirm('Remettre tous les prix par défaut sur tous les appareils ?')) persist({});
   };
 
   const val = (key, defaultVal) => getLocal(key) !== undefined ? getLocal(key) : defaultVal;
@@ -86,17 +105,24 @@ export default function PriceManager() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-semibold text-mh-text tracking-tight">Gestion des prix</h2>
-          <p className="text-sm text-mh-text-3 mt-0.5">Modifications sauvegardées en local sur cet appareil.</p>
+          <p className="text-sm text-mh-text-3 mt-0.5">
+            {synced
+              ? 'Les prix enregistrés ici s’appliquent sur tous les appareils.'
+              : 'Serveur injoignable — prix affichés depuis la dernière copie locale.'}
+          </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="secondary" size="sm" onClick={handleReset}>
+          <Button variant="secondary" size="sm" onClick={handleReset} disabled={saving}>
             <RotateCcw size={13} /> Défaut
           </Button>
-          <Button variant="primary" size="sm" onClick={saveAll}>
+          <Button variant="primary" size="sm" onClick={saveAll} disabled={saving}>
             {saved ? <><Check size={13} /> Sauvegardé</> : <><Save size={13} /> Sauvegarder</>}
           </Button>
         </div>
       </div>
+      {saveErr && (
+        <p className="text-sm text-red-700 bg-red-50 border border-red-200 px-4 py-2.5 rounded-mh">{saveErr}</p>
+      )}
 
       {/* ── MODÈLES ── */}
       <section>
@@ -163,7 +189,7 @@ export default function PriceManager() {
       })}
 
       <div className="flex justify-end pt-2">
-        <Button variant="primary" onClick={saveAll}>
+        <Button variant="primary" onClick={saveAll} disabled={saving}>
           {saved ? <><Check size={14} /> Sauvegardé</> : <><Save size={14} /> Sauvegarder tous les prix</>}
         </Button>
       </div>

@@ -19,4 +19,9 @@ export const mediaApi = {
   delete:  (id, resource_type)     => api.delete(`/media/${encodeURIComponent(id)}`, { params: { resource_type: resource_type || 'image' } }),
 };
 
+export const pricesApi = {
+  get:  ()       => api.get('/prices'),
+  save: (prices) => api.put('/prices', prices),
+};
+
 export default api;
